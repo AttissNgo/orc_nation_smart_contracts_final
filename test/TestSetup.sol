@@ -129,6 +129,11 @@ contract TestSetup is Test {
         );
         vm.stopPrank();
 
+        // claim initial mint of 500 tokens
+        vm.prank(owner);
+        nft.initialMint();
+
+
         // record payee -> share internally for testing splitter
         for(uint i = 0; i < payees.length; ++i) {
             payeeToSharesInternal[payees[i]] = shares[i];

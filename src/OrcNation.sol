@@ -37,6 +37,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     address private royaltyReceiver;
 
     address private immutable INITIAL_MINT_RECIPIENT;
+    bool public initialMintClaimed;
 
     string private baseUri; 
     uint256 private tokenIds;
@@ -87,6 +88,8 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     error OrcNation__OnlyRaffle();
     error OrcNation__OnlyAdmin();
     error OrcNation__InvalidNewPrice();
+    error OrcNation__OnlyInitialMintRecipient();
+    error OrcNation__InitialMintAlreadyClaimed();
 
     modifier onlyGovernor() {
         if(msg.sender != GOVERNOR) revert OrcNation__OnlyGovernor();
@@ -215,11 +218,14 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
-    function _initialMint(address _recipient) private {
+    function initialMint() public {
+        if(msg.sender != INITIAL_MINT_RECIPIENT) revert OrcNation__OnlyInitialMintRecipient();
+        if(initialMintClaimed) revert OrcNation__InitialMintAlreadyClaimed();
+        initialMintClaimed = true;
         uint256 updatedRemainingUris = remainingUris;
         for(uint i = 1; i <= 500; ) {
             ++tokenIds;
-            _mint(_recipient, tokenIds);
+            _mint(INITIAL_MINT_RECIPIENT, tokenIds);
             uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
             uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
             tokenIdToUriExtension[i] = uriExt;

@@ -34,36 +34,73 @@ contract DeploymentLib is Script {
     string public obj1;
     string public addressValueKey;
 
+    function _setContractNames(
+        address _pricefeed,
+        address _vrf,
+        address _governor,
+        address _paymentSplitter,
+        address _orcNation,
+        address _raffle
+    ) 
+        internal 
+    {
+        contractNames[_pricefeed] = "Pricefeed";
+        contractAddresses.push(_pricefeed);
+        contractNames[_vrf] = "VRF";
+        contractAddresses.push(_vrf);
+        contractNames[_governor] = "Governor";
+        contractAddresses.push(_governor);
+        contractNames[_paymentSplitter] = "PaymentSplitter";
+        contractAddresses.push(address(paymentSplitter));
+        contractNames[_orcNation] = "OrcNation";
+        contractAddresses.push(_orcNation);
+        contractNames[_raffle] = "Raffle";
+        contractAddresses.push(_raffle);
+    }
 
-    function serializeABI() public {}
-
-    function serializeAddr(
+    function _serializeAddr(
         string memory _object, 
         string memory _keyName, 
         address _addr
     ) 
-        public 
+        internal
         returns (string memory)
     {
         string memory serializedAddress = vm.serializeAddress(_object, _keyName, _addr);
         return serializedAddress;
     }
 
-    function writeToJsonOut(
+    function _writeToJsonOut(
         string memory _serializedValue,
         string memory _filePath,
         string memory _valueKey
     )
-        public
+        internal
     {
         vm.writeJson(_serializedValue, _filePath, _valueKey);
+    }
+
+    function _copyAbisFromOut() internal {
+        string memory orcNationAbi = vm.readFile("./out/OrcNation.sol/OrcNation.json");
+        string memory path = "./json_out/OrcNationAbi.json";
+        vm.writeFile(path, orcNationAbi);
+        
+        string memory governorAbi = vm.readFile("./out/Governor.sol/Governor.json");
+        path = "./json_out/GovernorAbi.json";
+        vm.writeFile(path, governorAbi);
+
+        string memory paymentSplitterAbi = vm.readFile("./out/PaymentSplitter.sol/PaymentSplitter.json");
+        path = "./json_out/PaymentSplitterAbi.json";
+        vm.writeFile(path, paymentSplitterAbi);
+
+        string memory raffleAbi = vm.readFile("./out/Raffle.sol/Raffle.json");
+        path = "./json_out/RaffleAbi.json";
+        vm.writeFile(path, raffleAbi);
     }
 
 }
 
 contract DeploymentLocal is DeploymentLib {
-
-    
 
     address public initialMintRecipient = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address[] public admins = [
@@ -83,7 +120,7 @@ contract DeploymentLocal is DeploymentLib {
     ];
 
     function setUp() public {
-
+        // pricefeed & vrf addresses set in run()
         // uri & governance
         baseUri = "ipfs://bafybeihtjotnsuu5zgv2miitn6garjwfavprkivrjswixcm73sbyrpusxy/"; //dummy image - production rarity
         sigsRequired = 2;
@@ -97,24 +134,15 @@ contract DeploymentLocal is DeploymentLib {
         vm.startBroadcast(deployerPrivateKey);
 
         pricefeedMock = new PriceFeedMock();
-        pricefeedAddress = address(pricefeedMock);
-        contractNames[pricefeedAddress] = "Pricefeed";
-        contractAddresses.push(pricefeedAddress);
 
         vrfMock = new VRFCoordinatorV2Mock(1, 1);
         subscriptionId = vrfMock.createSubscription();
         vrfMock.fundSubscription(subscriptionId, 10 ether);
-        vrfAddress = address(vrfMock);
-        contractNames[vrfAddress] = "VRF";
-        contractAddresses.push(vrfAddress);
 
         governor = new Governor(admins, sigsRequired);
         payees[0] = address(governor);
-        contractNames[address(governor)] = "Governor";
-        contractAddresses.push(address(governor));
 
         uint64 nonce = vm.getNonce(vm.addr(deployerPrivateKey));
-        console.log("nonce: ", nonce);
         address computedRaffleAddr = vm.computeCreateAddress(vm.addr(deployerPrivateKey), nonce + 2);
         paymentSplitter = new PaymentSplitter(
             payees, 
@@ -123,8 +151,6 @@ contract DeploymentLocal is DeploymentLib {
             address(governor),
             computedRaffleAddr
         );
-        contractNames[address(paymentSplitter)] = "PaymentSplitter";
-        contractAddresses.push(address(paymentSplitter));
 
         nft = new OrcNation(
             vrfAddress,
@@ -138,8 +164,6 @@ contract DeploymentLocal is DeploymentLib {
             subscriptionId,
             baseUri
         );
-        contractNames[address(nft)] = "OrcNation";
-        contractAddresses.push(address(nft));
 
         raffle = new Raffle(
             vrfAddress, 
@@ -148,33 +172,30 @@ contract DeploymentLocal is DeploymentLib {
             address(paymentSplitter),
             address(governor)
         );
-        contractNames[address(raffle)] = "Raffle";
-        contractAddresses.push(address(raffle));
 
         vm.stopBroadcast();
         
+        // set names
+        _setContractNames(
+            address(pricefeedMock),
+            address(vrfMock),
+            address(governor),
+            address(paymentSplitter),
+            address(nft),
+            address(raffle)
+        );
+
         // write addresses to json
         for(uint i; i < contractAddresses.length; ++i) {
-            string memory serializedAddress = serializeAddr(obj1, contractNames[contractAddresses[i]], contractAddresses[i]);
-            writeToJsonOut(serializedAddress, "./json_out/deployedAddresses.json", addressValueKey);
+            _writeToJsonOut(
+                _serializeAddr(obj1, contractNames[contractAddresses[i]], contractAddresses[i]),
+                "./json_out/deployedAddresses.json", 
+                addressValueKey
+            );
         }
 
-        // string memory obj1 = "local";
-        // string memory valueKey = ".anvil";
-        // string memory pricefeedAddr = serializeAddr(obj1, "PricefeedAddress", pricefeedAddress);
-        // writeToJsonOut(pricefeedAddr, "./json_out/deployedAddresses.json", addressValueKey);
-
-
-        // string memory vrfAddr = serializeAddr(obj1, "VRFAddress", vrfAddress);
-        // vm.writeJson(vrfAddr, "./deploymentInfo.json", valueKey);
-        // string memory govAddr = vm.serializeAddress(obj1, "GovernorAddress", address(governor));
-        // vm.writeJson(govAddr, "./deploymentInfo.json", valueKey);
-        // string memory paymentsAddr = vm.serializeAddress(obj1, "PaymentSplitterAddress", address(paymentSplitter));
-        // vm.writeJson(paymentsAddr, "./deploymentInfo.json", valueKey);
-        // string memory nftAddr = vm.serializeAddress(obj1, "OrcNationAddress", address(nft));
-        // vm.writeJson(nftAddr, "./deploymentInfo.json", valueKey);
-        // string memory raffleAddr = vm.serializeAddress(obj1, "RaffleAddress", address(raffle));
-        // vm.writeJson(raffleAddr, "./deploymentInfo.json", valueKey);
+        _copyAbisFromOut();
+        
     }  
 }
 

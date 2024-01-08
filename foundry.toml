@@ -5,8 +5,9 @@ libs = ['lib']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 fs_permissions = [
-    { access = "read-write", path = "./deploymentInfo.json"},
-    { access = "read-write", path = "./json_out/deployedAddresses.json"}
+    # { access = "read-write", path = "./json_out/deployedAddresses.json"},
+    { access = "read-write", path = "./json_out/"},
+    { access = "read", path = "./"}
 ]
 
 remappings = [

@@ -39,7 +39,7 @@ contract OrcNationTest is Test, TestSetup {
         assertEq(nft.subscriptionId(), subscriptionId);
     }
 
-    function test_initialMint() public {
+    function test_initialMint_success() public {
         assertEq(nft.getCurrentTokenId(), 500);
         // owner account has 500 tokens
         assertEq(nft.balanceOf(owner), 500);
@@ -48,6 +48,7 @@ contract OrcNationTest is Test, TestSetup {
             assertFalse(nft.tokenIdToUriExtension(i) == 0);
             // console.log(nft.tokenIdToUriExtension(i));
         }
+        assertTrue(nft.initialMintClaimed());
     }
 
     function test_constructor_errors() public {
