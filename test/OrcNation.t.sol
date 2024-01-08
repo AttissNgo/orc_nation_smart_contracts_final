@@ -51,6 +51,72 @@ contract OrcNationTest is Test, TestSetup {
         assertTrue(nft.initialMintClaimed());
     }
 
+    function test_initialMint_gas() public {
+        vm.pauseGasMetering();
+        nft = new OrcNation(
+            address(vrf),
+            address(pricefeed),
+            address(governor),
+            address(paymentSplitter),
+            address(raffle),
+            owner,
+            block.timestamp + 100,
+            block.timestamp + 200,
+            subscriptionId,
+            uri
+        );
+        vm.resumeGasMetering();
+        vm.prank(owner);
+        nft.initialMint();
+    }
+
+    function test_initialMint_revert() public {
+        // deploy new instance
+        vm.pauseGasMetering();
+        nft = new OrcNation(
+            address(vrf),
+            address(pricefeed),
+            address(governor),
+            address(paymentSplitter),
+            address(raffle),
+            owner,
+            block.timestamp + 100,
+            block.timestamp + 200,
+            subscriptionId,
+            uri
+        );
+        vm.resumeGasMetering();
+
+        // not inital mint recipient
+        vm.expectRevert(OrcNation.OrcNation__OnlyInitialMintRecipient.selector);
+        vm.prank(alice);
+        nft.initialMint();
+
+        // already claimed
+        vm.prank(owner);
+        nft.initialMint();
+        vm.expectRevert(OrcNation.OrcNation__InitialMintAlreadyClaimed.selector);
+        vm.prank(owner);
+        nft.initialMint();
+
+        // reverts if claimed late - not enough tokens
+        // vm.pauseGasMetering();
+        // nft = new OrcNation(
+        //     address(vrf),
+        //     address(pricefeed),
+        //     address(governor),
+        //     address(paymentSplitter),
+        //     address(raffle),
+        //     owner,
+        //     block.timestamp + 100,
+        //     block.timestamp + 200,
+        //     subscriptionId,
+        //     uri
+        // );
+        // vm.resumeGasMetering();
+
+    }
+
     function test_constructor_errors() public {
         vm.expectRevert(OrcNation.OrcNation__InvalidSaleTime.selector);
         new OrcNation(

@@ -221,6 +221,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     function initialMint() public {
         if(msg.sender != INITIAL_MINT_RECIPIENT) revert OrcNation__OnlyInitialMintRecipient();
         if(initialMintClaimed) revert OrcNation__InitialMintAlreadyClaimed();
+        _checkSupply(500);
         initialMintClaimed = true;
         uint256 updatedRemainingUris = remainingUris;
         for(uint i = 1; i <= 500; ) {
