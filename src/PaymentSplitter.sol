@@ -31,6 +31,7 @@ contract PaymentSplitter {
 
     error PaymentSplitter__NoPayees();
     error PaymentSplitter__PayeesAndSharesMismatched();
+    error PaymentSplitter__SharesMustTotalOneHundredPercent();
     error PaymentSplitter__PayeeIsZeroAddress();
     error PaymentSplitter__ShareIsZero();
     error PaymentSplitter__DuplicatePayeeAddress();
@@ -38,7 +39,7 @@ contract PaymentSplitter {
     error PaymentSplitter__NoPaymentDue();
     error PaymentSplitter__InsufficientContractBalance();
     error PaymentSplitter__PaymentTransferFailed();
-    error PaymentSplitter__CompanyMustBeFirstPayeeAccount();
+    error PaymentSplitter__GovernorMustBeFirstPayeeAccount();
     error PaymentSplitter__PriceFeedAnswerNegative();
     error PaymentSplitter__RaffleNotComplete();
     error PaymentSplitter__InvalidRaffle();
@@ -61,7 +62,14 @@ contract PaymentSplitter {
     {
         if(_payees.length == 0) revert PaymentSplitter__NoPayees();
         if(_payees.length != _shares.length) revert PaymentSplitter__PayeesAndSharesMismatched();
-        if(_governor != _payees[0]) revert PaymentSplitter__CompanyMustBeFirstPayeeAccount();
+        if(_governor != _payees[0]) revert PaymentSplitter__GovernorMustBeFirstPayeeAccount();
+        uint256 shareSum = 0;
+        for(uint i; i < _shares.length; ) {
+            shareSum += _shares[i];
+            unchecked {++i;}
+        }
+        // shares must total exactly 10000 ... 10000/100 = 100%
+        if(shareSum != 10000) revert PaymentSplitter__SharesMustTotalOneHundredPercent();
         GOVERNOR = _governor;
         PRICEFEED = IPricefeed(_pricefeed);
         RAFFLE = IRaffle(_raffle);
@@ -123,14 +131,14 @@ contract PaymentSplitter {
             revert PaymentSplitter__InvalidRaffle();
         }
         if(_tokenThreshold == 4000) {
-            // uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD);
-            // uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD);
-            // uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD);
+            uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD);
+            uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD);
+            uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD);
 
             // MUMBAI test prize amounts:
-            uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD) / 100000;
-            uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD) / 100000;
-            uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD) / 100000;
+            // uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD) / 100000;
+            // uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD) / 100000;
+            // uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD) / 100000;
 
             uint256[] memory prizes = new uint256[](3);
             prizes[0] = firstPrize;
@@ -138,19 +146,19 @@ contract PaymentSplitter {
             prizes[2] = thirdPrize;
             return(prizes, firstPrize + secondPrize + thirdPrize);
         } else if (_tokenThreshold == 6000) {
-            // uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD);
+            uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD);
 
             // MUMBAI test prize amount:
-            uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD) / 100000;
+            // uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD) / 100000;
 
             uint256[] memory prizes = new uint256[](1);
             prizes[0] = prizeAmount;
             return(prizes, prizeAmount);
         } else {
-            // uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD);
+            uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD);
 
             // MUMBAI test prize amount
-            uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD) / 100000;
+            // uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD) / 100000;
             
             uint256[] memory prizes = new uint256[](1);
             prizes[0] = prizeAmount;
@@ -171,9 +179,13 @@ contract PaymentSplitter {
 
     function paymentDue(address payee) public view returns (uint256) {
         uint256 totalReceived = getTotalReceived();
-        uint256 payment = (totalReceived * share[payee]) / totalShares - amountReleased[payee];
+        uint256 payment = _percentage((totalReceived * share[payee]) / totalShares) - amountReleased[payee];
         return payment;
     }
+
+    function _percentage(uint256 _amount) private pure returns (uint256) {
+        return _amount/100;
+    } 
 
     // getters 
     function getTotalReceived() public view returns (uint256) {

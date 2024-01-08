@@ -38,7 +38,7 @@ contract TestSetup is Test {
     address public teamMember4 = vm.addr(11);
     address public teamMember5 = vm.addr(12);
 
-    address public governorAddress;
+    address public governorAddressPlaceholder = address(0);
 
     // bulk addresses
     address[] public buyers;
@@ -51,7 +51,8 @@ contract TestSetup is Test {
     // TODO - update for decimals
     // payment splitter
     address[] public payees = [
-        governorAddress, 
+        governorAddressPlaceholder, 
+        owner,
         adminA, 
         adminB, 
         teamMember1,
@@ -61,14 +62,15 @@ contract TestSetup is Test {
         teamMember5
     ];
     uint256[] public shares = [
-        30, 
-        15,
-        15,
-        10,
-        5,
-        5,
-        5,
-        5
+        2950, 
+        1750,
+        500,
+        500,
+        860,
+        860,
+        860,
+        860,
+        860
     ];
     mapping(address => uint256) public payeeToSharesInternal;
 

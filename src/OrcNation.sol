@@ -35,9 +35,10 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
 
     uint96 public constant ROYALTY_BASIS_POINTS = 500;
     address private royaltyReceiver;
-    string private baseUri; 
 
-    // Counters.Counter private tokenIds;
+    address private immutable INITIAL_MINT_RECIPIENT;
+
+    string private baseUri; 
     uint256 private tokenIds;
     uint256 public remainingUris = MAX_SUPPLY;
     mapping(uint256 => uint256[]) private requestIdToTokenIds; // VRF request ID => batch of token Ids
@@ -47,8 +48,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint16 whitelistCounter; // tracks number of addresses assigned to whitelist
     uint8 compMintCounter; // tracks number of addresses assign a comp mint
     mapping(address => bool) private whitelist;
-    // Counters.Counter private whitelistCounter;
-    // Counters.Counter private compMintCounter;
     mapping(address => bool) private compMintRecipient;
     mapping(address => bool) private compMintClaimed; 
 
@@ -105,7 +104,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         address _governor,
         address _paymentSplitter,
         address _computedRaffleAddress,
-        // address _royaltyReceiver,
         address _initialMintRecipient,
         uint256 _presale,
         uint256 _saleOpen,
@@ -120,16 +118,16 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         PRICEFEED = IPricefeed(_priceFeed);
         GOVERNOR = _governor;
         PAYMENT_SPLITTER = _paymentSplitter;
-        // royaltyReceiver = _royaltyReceiver;
         royaltyReceiver = msg.sender;
         baseUri = _baseUri;
         PRESALE = _presale;
         SALE_OPEN = _saleOpen;
         subscriptionId = _subscriptionId;
         RAFFLE = IRaffle(_computedRaffleAddress);
+        INITIAL_MINT_RECIPIENT = _initialMintRecipient;
 
         // 500 mints on deployement
-        _initialMint(_initialMintRecipient);
+        // _initialMint(_initialMintRecipient);
     }
 
     function reducePrice(uint256 _newPriceInUSD) external onlyGovernor {
@@ -180,10 +178,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         uint256 requestId = _createVrfRequest();
         uint256[] memory batchTokens =  new uint256[](_numberOfTokens);
         for(uint i; i < _numberOfTokens; ++i) {
-            // tokenIds.increment();
             ++tokenIds;
-            // uint256 newTokenId = tokenIds.current();
-            // uint256 newTokenId = tokenIds;
             _mint(_to, tokenIds); 
             batchTokens[i] = tokenIds;
         }
@@ -220,6 +215,20 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
+    function _initialMint(address _recipient) private {
+        uint256 updatedRemainingUris = remainingUris;
+        for(uint i = 1; i <= 500; ) {
+            ++tokenIds;
+            _mint(_recipient, tokenIds);
+            uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
+            uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
+            tokenIdToUriExtension[i] = uriExt;
+            --updatedRemainingUris;
+            unchecked {++i;}
+        }
+        remainingUris = updatedRemainingUris;
+    }
+
     function _getAvailableUriAtIndex(uint256 _index, uint256 _updatedNumAvailableUris)
         private
         returns (uint256)
@@ -237,25 +246,11 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         return result;
     }
 
-    function _initialMint(address _recipient) private {
-        uint256 updatedRemainingUris = remainingUris;
-        for(uint i = 1; i <= 500; ) {
-            ++tokenIds;
-            _mint(_recipient, tokenIds);
-            uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
-            uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
-            tokenIdToUriExtension[i] = uriExt;
-            --updatedRemainingUris;
-            unchecked {++i;}
-        }
-    }
-
     function isMintingOpen() public view returns (bool) {
         return block.timestamp >= PRESALE;
     }
 
     function _checkSupply(uint256 _numberOfTokens) private view {
-        // if(tokenIds.current() + _numberOfTokens > MAX_SUPPLY) revert OrcNation__WillExceedMaxSupply();
         if(tokenIds + _numberOfTokens > MAX_SUPPLY) revert OrcNation__WillExceedMaxSupply();
     }
 
@@ -283,10 +278,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     /////////////////////////////
 
     function addToWhitelist(address[] calldata _whitelistees) external onlyAdmin {
-        // if(!IGovernor(GOVERNOR).isAdmin(msg.sender)) revert OrcNation__OnlyAdmin();
-        if(whitelistCounter + _whitelistees.length > MAX_WHITELISTEES) {
-            revert OrcNation__WillExceedMaxWhitelistees();
-        }
+        if(whitelistCounter + _whitelistees.length > MAX_WHITELISTEES) revert OrcNation__WillExceedMaxWhitelistees();
         for(uint i = 0; i < _whitelistees.length; ++i) {
             ++whitelistCounter;
             whitelist[_whitelistees[i]] = true;
@@ -294,9 +286,8 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     function assignCompMint(address _recipient) external onlyAdmin {
-        // if(!IGovernor(GOVERNOR).isAdmin(msg.sender)) revert OrcNation__OnlyAdmin();
+        if(compMintCounter + 1 > MAX_COMP_MINTS) revert OrcNation__MaxCompMintsExceeded();
         ++compMintCounter;
-        if(compMintCounter > MAX_COMP_MINTS) revert OrcNation__MaxCompMintsExceeded();
         if(compMintClaimed[_recipient]) revert OrcNation__CompMintAlreadyClaimed();
         if(isCompMintRecipient(_recipient)) revert OrcNation__CompMintAlreadyAssignedToAddress();
         compMintRecipient[_recipient] = true;

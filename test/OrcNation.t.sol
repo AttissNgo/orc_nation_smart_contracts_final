@@ -134,10 +134,6 @@ contract OrcNationTest is Test, TestSetup {
 
     function test_addToWhitelist() public {
         assertEq(nft.getWhitelistCount(), 0);
-        // address[] memory whitelistees = new address[](3);
-        // whitelistees[0] = alice;
-        // whitelistees[1] = bob;
-        // whitelistees[2] = carlos;
         vm.prank(owner);
         nft.addToWhitelist(users);
         assertEq(nft.getWhitelistCount(), users.length);
@@ -183,5 +179,218 @@ contract OrcNationTest is Test, TestSetup {
         vm.prank(owner);
         nft.addToWhitelist(whitelistees);
     }
+
+    ///////////////////
+    ///   MINTING   ///
+    ///////////////////
+
+    function test_mint() public {
+        uint256 numTokensBefore = nft.getCurrentTokenId();
+        uint256 paymentSplitterBalBefore = address(paymentSplitter).balance;
+        uint256 remainingUrisBefore = nft.remainingUris();
+        assertEq(nft.getBuyers().length, 0);
+        assertFalse(nft.isBuyer(alice));
+
+        warp_to_sale_open();
+
+        uint256 numMints = 5;
+        uint256 value = nft.calculatePrice(numMints);
+        uint256 expectedVRFRequestId = 1;
+        vm.expectEmit(false, false, false, true);
+        emit VRFRequestCreated(expectedVRFRequestId);
+        vm.prank(alice);
+        uint256 requestId = nft.mint{value: value}(alice, numMints);
+        uint256[] memory batchTokens = nft.getBatchTokens(requestId);
+        assertEq(batchTokens.length, numMints);
+        assertEq(nft.getCurrentTokenId(), numTokensBefore + numMints);
+        assertEq(address(paymentSplitter).balance, paymentSplitterBalBefore + value);
+        assertEq(nft.getBuyers().length, 1);
+        assertTrue(nft.isBuyer(alice));
+        
+        // fulfill VRF request
+        vrf.fulfillRandomWords(requestId, address(nft));
+        // uris assigned
+        assertEq(nft.remainingUris(), remainingUrisBefore - numMints);
+        for(uint i; i < batchTokens.length; ++i) {
+            assertTrue(nft.tokenIdToUriExtension(batchTokens[i]) != 0);
+        }
+    }
+
+    function test_mint_revert() public {
+        uint256 value = nft.calculatePrice(1);
+        // minting not open
+        vm.expectRevert(OrcNation.OrcNation__MintingNotOpen.selector);
+        vm.prank(alice);
+        nft.mint{value: value}(alice, 1);
+
+        warp_to_presale();
+
+        // presale - not whitelisted
+        assertFalse(nft.isWhitelisted(alice));
+        vm.expectRevert(OrcNation.OrcNation__NotWhitelisted.selector);
+        vm.prank(alice);
+        nft.mint{value: value}(alice, 1);
+
+        // presale - max presale exceeded
+        vm.prank(adminA);
+        nft.addToWhitelist(users);
+        assertTrue(nft.isWhitelisted(alice));
+        value = nft.calculatePrice(3);
+        vm.prank(alice);
+        nft.mint{value: value}(alice, 3);
+        vm.expectRevert(OrcNation.OrcNation__MaxThreePresaleMintsPerWhitelistedAddress.selector);
+        vm.prank(alice);
+        nft.mint{value: value}(alice, 3);
+
+        warp_to_sale_open();
+
+        // zero mints
+        vm.expectRevert(OrcNation.OrcNation__MustMintAtLeastOneToken.selector);
+        vm.prank(alice);
+        nft.mint(alice, 0);
+
+        // max mints per tx exceeded
+        value = nft.calculatePrice(11);
+        vm.expectRevert(OrcNation.OrcNation__MaxMintsPerTransactionExceeded.selector);
+        vm.prank(alice);
+        nft.mint{value: value}(alice, 11);
+
+        // insufficient payment
+        value = nft.calculatePrice(1);
+        bytes4 selector = bytes4(keccak256("OrcNation__InsufficientPayment(uint256)"));
+        vm.expectRevert(abi.encodeWithSelector(selector, value));
+        vm.prank(alice);
+        nft.mint{value: value - 1}(alice, 1);
+
+        // total supply exceeded
+        vm.pauseGasMetering();
+        while(nft.getCurrentTokenId() < nft.MAX_SUPPLY()) {
+            for(uint i; i < buyers.length; ++i) {
+                if(nft.getCurrentTokenId() == nft.MAX_SUPPLY()) break;
+                vm.prank(buyers[i]);
+                nft.mint{value: value}(buyers[i], 1);
+            }
+        }
+        vm.resumeGasMetering();
+        assertEq(nft.getCurrentTokenId(), nft.MAX_SUPPLY());
+        vm.expectRevert(OrcNation.OrcNation__WillExceedMaxSupply.selector);
+        vm.prank(alice);
+        nft.mint{value: value}(alice, 1);
+    }
+
+    function test_assignCompMint() public {
+        assertEq(nft.getCompMintCount(), 0);
+        assertFalse(nft.isCompMintRecipient(alice));
+        vm.prank(owner);
+        nft.assignCompMint(alice);
+        assertEq(nft.getCompMintCount(), 1);
+        assertTrue(nft.isCompMintRecipient(alice));
+    }
+
+    function test_assignCompMint_revert() public {
+
+        warp_to_sale_open();
+
+        // duplicate address
+        vm.prank(owner);
+        nft.assignCompMint(alice);
+        vm.expectRevert(OrcNation.OrcNation__CompMintAlreadyAssignedToAddress.selector);
+        vm.prank(owner);
+        nft.assignCompMint(alice);
+        
+        // already claimed comp
+        vm.prank(owner);
+        nft.assignCompMint(bob);
+        vm.prank(bob);
+        nft.mintComp();
+        vm.expectRevert(OrcNation.OrcNation__CompMintAlreadyClaimed.selector);
+        vm.prank(owner);
+        nft.assignCompMint(bob);
+
+        // max comps exceeded
+        uint256 i = 0;
+        while(nft.getCompMintCount() < nft.MAX_COMP_MINTS()) {
+            vm.prank(owner);
+            nft.assignCompMint(buyers[i]);
+            ++i;
+        }
+        assertEq(nft.getCompMintCount(), nft.MAX_COMP_MINTS());
+        vm.expectRevert(OrcNation.OrcNation__MaxCompMintsExceeded.selector);
+        vm.prank(owner);
+        nft.assignCompMint(carlos);
+    }
+
+    function test_mintComp() public {
+        vm.prank(owner);
+        nft.assignCompMint(alice);
+        warp_to_presale();
+        vm.prank(alice);
+        uint256 requestId = nft.mintComp();
+        assertEq(nft.ownerOf(nft.getBatchTokens(requestId)[0]), alice);
+        assertEq(nft.hasClaimedCompMint(alice), true);
+    }
+
+    function test_mintComp_revert() public {
+        // already claimed
+        vm.prank(owner);
+        nft.assignCompMint(alice);
+        warp_to_presale();
+        vm.prank(alice);
+        nft.mintComp();
+        assertTrue(nft.hasClaimedCompMint(alice));
+        vm.expectRevert(OrcNation.OrcNation__CompMintAlreadyClaimed.selector);
+        vm.prank(alice);
+        nft.mintComp();
+
+        // not comp recipient
+        assertFalse(nft.isCompMintRecipient(bob));
+        vm.expectRevert(OrcNation.OrcNation__NotEligibleForCompMint.selector);
+        vm.prank(bob);
+        nft.mintComp();
+    } 
+
+    /////////////////////
+    ///   TOKEN URI   ///
+    /////////////////////
+
+    mapping(uint256 => bool) urisUsed;
+
+    function test_all_uris_unique() public {
+        vm.pauseGasMetering();
+
+        warp_to_sale_open();
+
+        // console.log(nft.getCurrentTokenId());
+        // console.log(nft.remainingUris());
+
+        // mint all tokens & assign URIs
+        uint256 value = nft.calculatePrice(1);
+        while(nft.getCurrentTokenId() < nft.MAX_SUPPLY()) {
+            for(uint i; i < buyers.length; ++i) {
+                if(nft.getCurrentTokenId() == nft.MAX_SUPPLY()) break;
+                vm.prank(buyers[i]);
+                uint256 requestId = nft.mint{value: value}(buyers[i], 1);
+                vrf.fulfillRandomWords(requestId, address(nft));
+            }
+        }
+        assertEq(nft.getCurrentTokenId(), nft.MAX_SUPPLY());
+
+        // populate mapping with uri extensions - check for duplicates
+        for(uint i = 1; i <= 10000; ++i) {
+            // if(nft.tokenIdToUriExtension(i) == 0) console.log(i);
+            assertFalse(urisUsed[nft.tokenIdToUriExtension(i)]);
+            urisUsed[nft.tokenIdToUriExtension(i)] = true;
+        }
+        vm.resumeGasMetering();
+    }
+
+    function test_tokenURI() public {
+        for(uint i = 1; i <= 500; ++i) {
+            uint256 uriExt = nft.tokenIdToUriExtension(i);
+            string memory expectedUri = string.concat(nft.getBaseUri(), uriExt.toString(), ".json");
+            assertEq(expectedUri, nft.tokenURI(i));
+        }
+    }
+
 
 }
