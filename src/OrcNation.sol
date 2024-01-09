@@ -220,41 +220,13 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
-    function ownerMint(uint256 _numberOfTokens) external {
+    function ownerMint(uint16 _numberOfTokens) external returns (uint256 requestId) {
         if(msg.sender != OWNER) revert OrcNation__OnlyOwner();
         if(_numberOfTokens + ownerMintCounter > MAX_OWNER_MINTS) revert OrcNation__WillExceedMaxOwnerMints();
         _checkSupply(_numberOfTokens);
-        uint256 updatedRemainingUris = remainingUris;
-        for(uint i; i < _numberOfTokens; ) {
-            ++ownerMintCounter;
-            ++tokenIds;
-            _mint(OWNER, tokenIds);
-            uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
-            uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
-            tokenIdToUriExtension[i] = uriExt;
-            --updatedRemainingUris;
-            unchecked {++i;}
-        }
-        remainingUris = updatedRemainingUris;
+        ownerMintCounter += _numberOfTokens;
+        requestId = _mintTokens(msg.sender, 1); 
     }  
-
-    // function initialMint() public {
-    //     if(msg.sender != INITIAL_MINT_RECIPIENT) revert OrcNation__OnlyInitialMintRecipient();
-    //     if(initialMintClaimed) revert OrcNation__InitialMintAlreadyClaimed();
-    //     _checkSupply(500);
-    //     initialMintClaimed = true;
-    //     uint256 updatedRemainingUris = remainingUris;
-    //     for(uint i = 1; i <= 500; ) {
-    //         ++tokenIds;
-    //         _mint(INITIAL_MINT_RECIPIENT, tokenIds);
-    //         uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
-    //         uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
-    //         tokenIdToUriExtension[i] = uriExt;
-    //         --updatedRemainingUris;
-    //         unchecked {++i;}
-    //     }
-    //     remainingUris = updatedRemainingUris;
-    // }
 
     function _getAvailableUriAtIndex(uint256 _index, uint256 _updatedNumAvailableUris)
         private
