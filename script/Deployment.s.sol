@@ -226,7 +226,7 @@ contract DeploymentLocal is DeploymentLib {
 contract DeploymentMumbai is DeploymentLib {
 
     address[] public mumbaiAdmins = [
-        0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan (personal)
+        0x98779c48C6f426c0eF632EefA8981e05ecB1910C, // johan (personal)
         0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss dev0
         0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa, // attiss dev1
         0xDE12A4d649A27e1280ce1a8ceFc0483d38276968 // femi
@@ -239,7 +239,7 @@ contract DeploymentMumbai is DeploymentLib {
         0xf0ce0cc50d7fdF9145b606Fa6B9b1880192E77d6, // prachi
         0xB4BF6C646ceD30964Ab33F5C1dc61828167debd7, // ernsesto
         0x52e34Eb7568F794797525f65De29f6FA569d8D34, // martin
-        0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC, // SHOULD BE RODGER BUT NO ADDRESS PROVIDED SO USING anvil 2
+        0x741395400a3C09776C7208e4407ADA95344ef158, // rodger
         0x322f441eD1d1dA7a26fd888128143A097C17c167, // head marketing
         0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan
         0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss dev0
@@ -285,8 +285,8 @@ contract DeploymentMumbai is DeploymentLib {
         require(payees.length == shares.length, "mismatched addresses -> shares");
         // pricefeed & vrf config 
         subscriptionId = 2867; // make sure consumers are set!
-        pricefeedAddress = 0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada; 
-        vrfAddress = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; 
+        pricefeedAddress = 0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada; // mumbai testnet
+        vrfAddress = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; // mumbai testnet
         // sale times
         presaleTime = block.timestamp + 100;
         publicSaleTime = block.timestamp + 1 days;
@@ -300,6 +300,113 @@ contract DeploymentMumbai is DeploymentLib {
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("MUMBAI_PK_0"); // attiss dev0 account
+        vm.startBroadcast(deployerPrivateKey);
+        
+        _deployContracts(deployerPrivateKey);
+
+        vm.stopBroadcast();
+
+        // set names
+        _setContractNames(
+            pricefeedAddress,
+            vrfAddress,
+            address(governor),
+            address(paymentSplitter),
+            address(nft),
+            address(raffle)
+        );
+
+        // write addresses to json
+        for(uint i; i < contractAddresses.length; ++i) {
+            _writeToJsonOut(
+                _serializeAddr(obj1, contractNames[contractAddresses[i]], contractAddresses[i]),
+                "./json_out/deployedAddresses.json", 
+                addressValueKey
+            );
+        }
+
+        _copyAbisFromOut();
+
+    }
+}
+
+contract DeploymentPolygon is DeploymentLib {
+
+    address[] public polygonAdmins = [
+        0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan (personal)
+        0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss dev0
+        0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa, // attiss dev1
+        0xDE12A4d649A27e1280ce1a8ceFc0483d38276968 // femi
+    ];
+
+    address[] public polygonPayees = [
+        address(0), // this gets changed to Governor address in run()
+        0xA1Fa78C32C15a316436c243Bc3DABf9529c303a6, // radniel
+        0xA4f65508C82130622Bda6a507d5606BC4A420bFa, // jenelle
+        0xf0ce0cc50d7fdF9145b606Fa6B9b1880192E77d6, // prachi
+        0xB4BF6C646ceD30964Ab33F5C1dc61828167debd7, // ernsesto
+        0x52e34Eb7568F794797525f65De29f6FA569d8D34, // martin
+        0x741395400a3C09776C7208e4407ADA95344ef158, // rodger
+        0x322f441eD1d1dA7a26fd888128143A097C17c167, // head marketing
+        0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan
+        0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss dev0
+        0x0aeE152ceF9fC90C975fdFD186e649fbbcE259e4, // shree
+        0x48f25eF02FF0daC0666cCA23fFBb7759c146f8d9, // trevor
+        0xDE12A4d649A27e1280ce1a8ceFc0483d38276968, // femi
+        0x44a6bf09A58faA2033a26A0bD5A91F982F21Cd3B, // discord 4 / set 1
+        0x9b660b7106FBd0d7F334Bb3F7b5F08a8602535fe // discord 4 / set 2
+    ];
+
+    uint256[] public polygonShares = [
+        2952, // company
+        345, //radniel
+        345, // jenelle
+        345, // prachi
+        353, // ernesto
+        353, // martin
+        531, // rodger
+        690, // head marketing
+        1698, // johan
+        424, // attiss
+        424, // shree
+        424, // trevor
+        424, // femi
+        345, // discord 4 / set 1
+        345 // discord 4 / set 2
+    ];
+
+    function setUp() public {
+        // splitter checks
+        uint256 sharesSum;
+        // set EOAs
+        owner = 0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4; // johan owner address
+        for(uint i; i < polygonAdmins.length; ++i) {
+            admins.push(polygonAdmins[i]);
+        }
+        for(uint i; i < polygonPayees.length; ++i) {
+            payees.push(polygonPayees[i]);
+            shares.push(polygonShares[i]);
+            sharesSum += polygonShares[i];
+        }
+        require(sharesSum == 10000, "shares don't total 100%");
+        require(payees.length == shares.length, "mismatched addresses -> shares");
+        // pricefeed & vrf config 
+        subscriptionId = 2867; // TODO: Johan must set subscription & consumers
+        pricefeedAddress = 0xAB594600376Ec9fD91F8e885dADF0CE036862dE0; // polygon mainnet
+        vrfAddress = 0xAE975071Be8F8eE67addBC1A82488F1C24858067; // polygon mainnet
+        // sale times
+        presaleTime = block.timestamp + 100;
+        publicSaleTime = block.timestamp + 1 days;
+        // uri & governance
+        baseUri = "!!!!!!!!!!!!UNKOWN!!!!!!!!!!!!!!!!!"; // TODO: add correct URI
+        sigsRequired = 2;
+        // set json variables
+        obj1 = "polygon";
+        addressValueKey = ".polygon";
+    }
+
+    function run() public {
+        uint256 deployerPrivateKey = vm.envUint("POLYGON_PK_0"); // TODO: Johan must create .env for deployment
         vm.startBroadcast(deployerPrivateKey);
         
         _deployContracts(deployerPrivateKey);

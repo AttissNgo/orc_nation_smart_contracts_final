@@ -27,23 +27,24 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint16 public constant MAX_MINTS_PER_TX = 10;
     uint16 public constant MAX_OWNER_MINTS = 500;
 
+    uint16 public ownerMintCounter;
+    uint16 public whitelistCounter; 
+    uint8 public compMintCounter; 
+    
+
     uint256 public immutable PRESALE;
     uint256 public immutable SALE_OPEN;
 
     uint96 public constant ROYALTY_BASIS_POINTS = 500;
     address private royaltyReceiver;
+    string private baseUri;
 
-    uint256 public ownerMintCounter;
-
-    string private baseUri; 
     uint256 private tokenIds;
     uint256 public remainingUris = MAX_SUPPLY;
     mapping(uint256 => uint256[]) private requestIdToTokenIds; // VRF request ID => batch of token Ids
     mapping(uint256 => uint256) private availableUris;
     mapping(uint256 => uint256) public tokenIdToUriExtension;
 
-    uint16 whitelistCounter; // tracks number of addresses assigned to whitelist
-    uint8 compMintCounter; // tracks number of addresses assign a comp mint
     mapping(address => bool) private whitelist;
     mapping(address => bool) private compMintRecipient;
     mapping(address => bool) private compMintClaimed; 
@@ -86,8 +87,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     error OrcNation__InvalidNewPrice();
     error OrcNation__OnlyOwner();
     error OrcNation__WillExceedMaxOwnerMints();
-    // error OrcNation__OnlyInitialMintRecipient();
-    // error OrcNation__InitialMintAlreadyClaimed();
 
     modifier onlyGovernor() {
         if(msg.sender != GOVERNOR) revert OrcNation__OnlyGovernor();
@@ -126,10 +125,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         subscriptionId = _subscriptionId;
         RAFFLE = IRaffle(_computedRaffleAddress);
         OWNER = _owner;
-        // INITIAL_MINT_RECIPIENT = _initialMintRecipient;
-
-        // 500 mints on deployement
-        // _initialMint(_initialMintRecipient);
     }
 
     function reducePrice(uint256 _newPriceInUSD) external onlyGovernor {
@@ -158,8 +153,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         uint256 price = calculatePrice(_numberOfTokens);
         if(msg.value < price) revert OrcNation__InsufficientPayment(price);
         addToRaffle(_to);
-        // CHANGED from 'price' to msg.value so Orc Nation never holds money (in case someone overpays)
-        (bool success, ) = PAYMENT_SPLITTER.call{value: msg.value}(""); // should this be changed to a named function??
+        (bool success, ) = PAYMENT_SPLITTER.call{value: msg.value}(""); 
         require(success, "Payment transfer failed");
 
         uint256 requestId = _mintTokens(_to, _numberOfTokens);
@@ -217,7 +211,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
-    function ownerMint(uint256 _numberOfTokens) external returns (uint256 requestId) {
+    function ownerMint(uint16 _numberOfTokens) external returns (uint256 requestId) {
         if(msg.sender != OWNER) revert OrcNation__OnlyOwner();
         if(_numberOfTokens + ownerMintCounter > MAX_OWNER_MINTS) revert OrcNation__WillExceedMaxOwnerMints();
         if(_numberOfTokens > MAX_MINTS_PER_TX) revert OrcNation__MaxMintsPerTransactionExceeded();
