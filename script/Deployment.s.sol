@@ -25,7 +25,7 @@ contract DeploymentLib is Script {
     uint256 publicSaleTime;
 
     // EOAs
-    address public initialMintRecipient;
+    address public owner;
     address[] public admins;
     address[] public payees;
     uint256[] public shares;
@@ -72,7 +72,7 @@ contract DeploymentLib is Script {
             address(governor),
             address(paymentSplitter),
             computedRaffleAddr,
-            initialMintRecipient,
+            owner,
             presaleTime, 
             publicSaleTime, 
             subscriptionId,
@@ -168,7 +168,7 @@ contract DeploymentLocal is DeploymentLib {
 
     function setUp() public {
         // set EOAs
-        initialMintRecipient = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // anvil 0
+        owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // anvil 0
         for(uint i; i < anvilAdmins.length; ++i) {
             admins.push(anvilAdmins[i]);
         }
@@ -272,7 +272,7 @@ contract DeploymentMumbai is DeploymentLib {
         // splitter checks
         uint256 sharesSum;
         // set EOAs
-        initialMintRecipient = 0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa; // attiss dev1 -
+        owner = 0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa; // attiss dev1 -
         for(uint i; i < mumbaiAdmins.length; ++i) {
             admins.push(mumbaiAdmins[i]);
         }

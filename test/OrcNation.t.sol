@@ -39,83 +39,83 @@ contract OrcNationTest is Test, TestSetup {
         assertEq(nft.subscriptionId(), subscriptionId);
     }
 
-    function test_initialMint_success() public {
-        assertEq(nft.getCurrentTokenId(), 500);
-        // owner account has 500 tokens
-        assertEq(nft.balanceOf(owner), 500);
-        // tokens have URIs
-        for(uint i = 1; i <= 500; ++i) {
-            assertFalse(nft.tokenIdToUriExtension(i) == 0);
-            // console.log(nft.tokenIdToUriExtension(i));
-        }
-        assertTrue(nft.initialMintClaimed());
-    }
+    // function test_initialMint_success() public {
+    //     assertEq(nft.getCurrentTokenId(), 500);
+    //     // owner account has 500 tokens
+    //     assertEq(nft.balanceOf(owner), 500);
+    //     // tokens have URIs
+    //     for(uint i = 1; i <= 500; ++i) {
+    //         assertFalse(nft.tokenIdToUriExtension(i) == 0);
+    //         // console.log(nft.tokenIdToUriExtension(i));
+    //     }
+    //     assertTrue(nft.initialMintClaimed());
+    // }
 
-    function test_initialMint_gas() public {
-        vm.pauseGasMetering();
-        nft = new OrcNation(
-            address(vrf),
-            address(pricefeed),
-            address(governor),
-            address(paymentSplitter),
-            address(raffle),
-            owner,
-            block.timestamp + 100,
-            block.timestamp + 200,
-            subscriptionId,
-            uri
-        );
-        vm.resumeGasMetering();
-        vm.prank(owner);
-        nft.initialMint();
-    }
+    // function test_initialMint_gas() public {
+    //     vm.pauseGasMetering();
+    //     nft = new OrcNation(
+    //         address(vrf),
+    //         address(pricefeed),
+    //         address(governor),
+    //         address(paymentSplitter),
+    //         address(raffle),
+    //         owner,
+    //         block.timestamp + 100,
+    //         block.timestamp + 200,
+    //         subscriptionId,
+    //         uri
+    //     );
+    //     vm.resumeGasMetering();
+    //     vm.prank(owner);
+    //     nft.initialMint();
+    // }
 
-    function test_initialMint_revert() public {
-        // deploy new instance
-        vm.pauseGasMetering();
-        nft = new OrcNation(
-            address(vrf),
-            address(pricefeed),
-            address(governor),
-            address(paymentSplitter),
-            address(raffle),
-            owner,
-            block.timestamp + 100,
-            block.timestamp + 200,
-            subscriptionId,
-            uri
-        );
-        vm.resumeGasMetering();
+    // function test_initialMint_revert() public {
+    //     // deploy new instance
+    //     vm.pauseGasMetering();
+    //     nft = new OrcNation(
+    //         address(vrf),
+    //         address(pricefeed),
+    //         address(governor),
+    //         address(paymentSplitter),
+    //         address(raffle),
+    //         owner,
+    //         block.timestamp + 100,
+    //         block.timestamp + 200,
+    //         subscriptionId,
+    //         uri
+    //     );
+    //     vm.resumeGasMetering();
 
-        // not inital mint recipient
-        vm.expectRevert(OrcNation.OrcNation__OnlyInitialMintRecipient.selector);
-        vm.prank(alice);
-        nft.initialMint();
+    //     // not inital mint recipient
+    //     vm.expectRevert(OrcNation.OrcNation__OnlyInitialMintRecipient.selector);
+    //     vm.prank(alice);
+    //     nft.initialMint();
 
-        // already claimed
-        vm.prank(owner);
-        nft.initialMint();
-        vm.expectRevert(OrcNation.OrcNation__InitialMintAlreadyClaimed.selector);
-        vm.prank(owner);
-        nft.initialMint();
+    //     // already claimed
+    //     vm.prank(owner);
+    //     nft.initialMint();
+    //     vm.expectRevert(OrcNation.OrcNation__InitialMintAlreadyClaimed.selector);
+    //     vm.prank(owner);
+    //     nft.initialMint();
 
-        // reverts if claimed late - not enough tokens
-        // vm.pauseGasMetering();
-        // nft = new OrcNation(
-        //     address(vrf),
-        //     address(pricefeed),
-        //     address(governor),
-        //     address(paymentSplitter),
-        //     address(raffle),
-        //     owner,
-        //     block.timestamp + 100,
-        //     block.timestamp + 200,
-        //     subscriptionId,
-        //     uri
-        // );
-        // vm.resumeGasMetering();
+    //     // reverts if claimed late - not enough tokens
+    //     // vm.pauseGasMetering();
+    //     // nft = new OrcNation(
+    //     //     address(vrf),
+    //     //     address(pricefeed),
+    //     //     address(governor),
+    //     //     address(paymentSplitter),
+    //     //     address(raffle),
+    //     //     owner,
+    //     //     block.timestamp + 100,
+    //     //     block.timestamp + 200,
+    //     //     subscriptionId,
+    //     //     uri
+    //     // );
+    //     // vm.resumeGasMetering();
 
-    }
+    // }
 
     function test_constructor_errors() public {
         vm.expectRevert(OrcNation.OrcNation__InvalidSaleTime.selector);
@@ -182,6 +182,7 @@ contract OrcNationTest is Test, TestSetup {
     }
 
     function test_royaltyInfo() public {
+        util_mint_tokens(1);
         uint256 salePrice = 100 ether;
         (address receiver, uint256 royalty) = nft.royaltyInfo(1, salePrice);
         assertEq(receiver, company);
@@ -416,6 +417,38 @@ contract OrcNationTest is Test, TestSetup {
         nft.mintComp();
     } 
 
+    function test_ownerMint() public {
+        assertEq(nft.getCurrentTokenId(), 0);
+        uint256 ownerTokenBalBefore = nft.balanceOf(owner);
+        uint256 numMints = 100;
+        vm.prank(owner);
+        nft.ownerMint(numMints);
+
+        assertEq(nft.balanceOf(owner), ownerTokenBalBefore + numMints);
+        // since these are the only mints, we can just interate over all token ids to check uri uniqueness
+        for(uint i = 1; i <= nft.getCurrentTokenId(); ++i) {
+            for(uint j; j <= nft.getCurrentTokenId(); ++j) {
+                if(i != j) {
+                    assertFalse(nft.tokenIdToUriExtension(i) == nft.tokenIdToUriExtension(j));
+                }
+            }
+        }
+    }
+
+    function test_ownerMint_revert() public {
+        // not owner
+        vm.expectRevert(OrcNation.OrcNation__OnlyOwner.selector);
+        vm.prank(adminA);
+        nft.ownerMint(1);
+        // exceed owner mints
+        vm.prank(owner);
+        nft.ownerMint(500);
+        vm.expectRevert(OrcNation.OrcNation__WillExceedMaxOwnerMints.selector);
+        vm.prank(owner);
+        nft.ownerMint(1);
+        // exceed max supply
+    }
+
     /////////////////////
     ///   TOKEN URI   ///
     /////////////////////
@@ -452,6 +485,7 @@ contract OrcNationTest is Test, TestSetup {
     }
 
     function test_tokenURI() public {
+        util_mint_tokens(500);
         for(uint i = 1; i <= 500; ++i) {
             uint256 uriExt = nft.tokenIdToUriExtension(i);
             string memory expectedUri = string.concat(nft.getBaseUri(), uriExt.toString(), ".json");
@@ -459,5 +493,36 @@ contract OrcNationTest is Test, TestSetup {
         }
     }
 
+    ////////////////////////
+    ///   REDUCE PRICE   ///
+    ////////////////////////
+
+    function test_reducePrice() public {
+        uint256 newPrice = 33;
+        bytes memory data = abi.encodeWithSignature("reducePrice(uint256)", newPrice);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        util_executeGovernorTx(txIndex);
+        assertEq(nft.PRICE_IN_USD(), newPrice);
+    }
+
+    function test_reducePrice_revert() public {
+        // too high
+        uint256 invalidPrice = 98;
+        bytes memory data = abi.encodeWithSignature("reducePrice(uint256)", invalidPrice);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        vm.expectRevert();
+        vm.prank(adminB);
+        governor.signTransaction(txIndex);
+        // too low
+        invalidPrice = 31;
+        data = abi.encodeWithSignature("reducePrice(uint256)", invalidPrice);
+        vm.prank(adminA);
+        txIndex = governor.proposeTransaction(address(nft), 0, data);
+        vm.expectRevert();
+        vm.prank(adminB);
+        governor.signTransaction(txIndex);
+    }
 
 }

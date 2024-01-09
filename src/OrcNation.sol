@@ -2,18 +2,14 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-// import "solmate/src/utils/LibString.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "chainlink/VRFCoordinatorV2Interface.sol";
 import "chainlink/VRFConsumerBaseV2.sol";
-// import "@openzeppelin/contracts/utils/Counters.sol";
 import "./Interfaces/IRaffle.sol";
 import "./Interfaces/IPricefeed.sol";
 import "./Interfaces/IGovernor.sol";
 
 contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
-    // using Counters for Counters.Counter;
-    // using LibString for uint256;
     using Strings for uint256;
     
     VRFCoordinatorV2Interface public immutable VRF_COORDINATOR;
@@ -22,13 +18,12 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     address public immutable PAYMENT_SPLITTER;
     address public immutable GOVERNOR;
 
-    // uint256 public constant PRICE_IN_USD = 65;
     uint256 public PRICE_IN_USD = 65; // can be set by governor action
-    uint256 public constant MAX_SUPPLY = 10000;
-    uint256 public constant MAX_WHITELISTEES = 500;
-    uint256 public constant MAX_PRESALE_MINTS = 3;
-    uint256 public constant MAX_COMP_MINTS = 50;
-    uint256 public constant MAX_MINTS_PER_TX = 10;
+    uint16 public constant MAX_SUPPLY = 10000;
+    uint16 public constant MAX_WHITELISTEES = 500;
+    uint16 public constant MAX_PRESALE_MINTS = 3;
+    uint16 public constant MAX_COMP_MINTS = 50;
+    uint16 public constant MAX_MINTS_PER_TX = 10;
 
     uint256 public immutable PRESALE;
     uint256 public immutable SALE_OPEN;
@@ -36,8 +31,12 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint96 public constant ROYALTY_BASIS_POINTS = 500;
     address private royaltyReceiver;
 
-    address private immutable INITIAL_MINT_RECIPIENT;
-    bool public initialMintClaimed;
+    // address private immutable INITIAL_MINT_RECIPIENT;
+    // bool public initialMintClaimed;
+
+    address public immutable OWNER;
+    uint16 public constant MAX_OWNER_MINTS = 500;
+    uint16 public ownerMintCounter;
 
     string private baseUri; 
     uint256 private tokenIds;
@@ -88,8 +87,10 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     error OrcNation__OnlyRaffle();
     error OrcNation__OnlyAdmin();
     error OrcNation__InvalidNewPrice();
-    error OrcNation__OnlyInitialMintRecipient();
-    error OrcNation__InitialMintAlreadyClaimed();
+    error OrcNation__OnlyOwner();
+    error OrcNation__WillExceedMaxOwnerMints();
+    // error OrcNation__OnlyInitialMintRecipient();
+    // error OrcNation__InitialMintAlreadyClaimed();
 
     modifier onlyGovernor() {
         if(msg.sender != GOVERNOR) revert OrcNation__OnlyGovernor();
@@ -107,7 +108,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         address _governor,
         address _paymentSplitter,
         address _computedRaffleAddress,
-        address _initialMintRecipient,
+        address _owner,
         uint256 _presale,
         uint256 _saleOpen,
         uint64 _subscriptionId,
@@ -127,7 +128,8 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         SALE_OPEN = _saleOpen;
         subscriptionId = _subscriptionId;
         RAFFLE = IRaffle(_computedRaffleAddress);
-        INITIAL_MINT_RECIPIENT = _initialMintRecipient;
+        OWNER = _owner;
+        // INITIAL_MINT_RECIPIENT = _initialMintRecipient;
 
         // 500 mints on deployement
         // _initialMint(_initialMintRecipient);
@@ -218,15 +220,15 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
-    function initialMint() public {
-        if(msg.sender != INITIAL_MINT_RECIPIENT) revert OrcNation__OnlyInitialMintRecipient();
-        if(initialMintClaimed) revert OrcNation__InitialMintAlreadyClaimed();
-        _checkSupply(500);
-        initialMintClaimed = true;
+    function ownerMint(uint256 _numberOfTokens) external {
+        if(msg.sender != OWNER) revert OrcNation__OnlyOwner();
+        if(_numberOfTokens + ownerMintCounter > MAX_OWNER_MINTS) revert OrcNation__WillExceedMaxOwnerMints();
+        _checkSupply(_numberOfTokens);
         uint256 updatedRemainingUris = remainingUris;
-        for(uint i = 1; i <= 500; ) {
+        for(uint i; i < _numberOfTokens; ) {
+            ++ownerMintCounter;
             ++tokenIds;
-            _mint(INITIAL_MINT_RECIPIENT, tokenIds);
+            _mint(OWNER, tokenIds);
             uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
             uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
             tokenIdToUriExtension[i] = uriExt;
@@ -234,7 +236,25 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
             unchecked {++i;}
         }
         remainingUris = updatedRemainingUris;
-    }
+    }  
+
+    // function initialMint() public {
+    //     if(msg.sender != INITIAL_MINT_RECIPIENT) revert OrcNation__OnlyInitialMintRecipient();
+    //     if(initialMintClaimed) revert OrcNation__InitialMintAlreadyClaimed();
+    //     _checkSupply(500);
+    //     initialMintClaimed = true;
+    //     uint256 updatedRemainingUris = remainingUris;
+    //     for(uint i = 1; i <= 500; ) {
+    //         ++tokenIds;
+    //         _mint(INITIAL_MINT_RECIPIENT, tokenIds);
+    //         uint256 index = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % updatedRemainingUris;
+    //         uint256 uriExt = _getAvailableUriAtIndex(index, updatedRemainingUris);
+    //         tokenIdToUriExtension[i] = uriExt;
+    //         --updatedRemainingUris;
+    //         unchecked {++i;}
+    //     }
+    //     remainingUris = updatedRemainingUris;
+    // }
 
     function _getAvailableUriAtIndex(uint256 _index, uint256 _updatedNumAvailableUris)
         private

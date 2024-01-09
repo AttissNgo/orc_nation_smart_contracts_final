@@ -129,9 +129,9 @@ contract TestSetup is Test {
         );
         vm.stopPrank();
 
-        // claim initial mint of 500 tokens
-        vm.prank(owner);
-        nft.initialMint();
+        // // claim initial mint of 500 tokens
+        // vm.prank(owner);
+        // nft.initialMint();
 
 
         // record payee -> share internally for testing splitter
