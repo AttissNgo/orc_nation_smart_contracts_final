@@ -422,7 +422,8 @@ contract OrcNationTest is Test, TestSetup {
         uint256 ownerTokenBalBefore = nft.balanceOf(owner);
         uint256 numMints = 100;
         vm.prank(owner);
-        nft.ownerMint(numMints);
+        uint256 requestId = nft.ownerMint(numMints);
+        vrf.fulfillRandomWords(requestId, address(nft));
 
         assertEq(nft.balanceOf(owner), ownerTokenBalBefore + numMints);
         // since these are the only mints, we can just interate over all token ids to check uri uniqueness

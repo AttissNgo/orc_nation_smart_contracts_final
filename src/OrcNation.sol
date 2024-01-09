@@ -17,6 +17,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     IRaffle public immutable RAFFLE;
     address public immutable PAYMENT_SPLITTER;
     address public immutable GOVERNOR;
+    address public immutable OWNER;
 
     uint256 public PRICE_IN_USD = 65; // can be set by governor action
     uint16 public constant MAX_SUPPLY = 10000;
@@ -24,6 +25,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint16 public constant MAX_PRESALE_MINTS = 3;
     uint16 public constant MAX_COMP_MINTS = 50;
     uint16 public constant MAX_MINTS_PER_TX = 10;
+    uint16 public constant MAX_OWNER_MINTS = 500;
 
     uint256 public immutable PRESALE;
     uint256 public immutable SALE_OPEN;
@@ -31,12 +33,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint96 public constant ROYALTY_BASIS_POINTS = 500;
     address private royaltyReceiver;
 
-    // address private immutable INITIAL_MINT_RECIPIENT;
-    // bool public initialMintClaimed;
-
-    address public immutable OWNER;
-    uint16 public constant MAX_OWNER_MINTS = 500;
-    uint16 public ownerMintCounter;
+    uint256 public ownerMintCounter;
 
     string private baseUri; 
     uint256 private tokenIds;
@@ -220,12 +217,13 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
-    function ownerMint(uint16 _numberOfTokens) external returns (uint256 requestId) {
+    function ownerMint(uint256 _numberOfTokens) external returns (uint256 requestId) {
         if(msg.sender != OWNER) revert OrcNation__OnlyOwner();
         if(_numberOfTokens + ownerMintCounter > MAX_OWNER_MINTS) revert OrcNation__WillExceedMaxOwnerMints();
+        if(_numberOfTokens > MAX_MINTS_PER_TX) revert OrcNation__MaxMintsPerTransactionExceeded();
         _checkSupply(_numberOfTokens);
         ownerMintCounter += _numberOfTokens;
-        requestId = _mintTokens(msg.sender, 1); 
+        requestId = _mintTokens(msg.sender, _numberOfTokens); 
     }  
 
     function _getAvailableUriAtIndex(uint256 _index, uint256 _updatedNumAvailableUris)
