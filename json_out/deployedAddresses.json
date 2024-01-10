@@ -7,6 +7,13 @@
     "Raffle": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
     "VRF": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
   },
-  "mumbai": {},
+  "mumbai": {
+    "Governor": "0x82De923A4b08d59e9b866D5987875ee184f47c17",
+    "OrcNation": "0xc3a43060cA8633c3D9f0BA5eb0eFc935A57a582e",
+    "PaymentSplitter": "0x73A98fFc13d347747fEFfb485aeE4dF1A610a3B1",
+    "Pricefeed": "0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada",
+    "Raffle": "0x92d2E5Fe3703040d01eD952B83Fa84c2932ECF28",
+    "VRF": "0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed"
+  },
   "polygon": {}
 }

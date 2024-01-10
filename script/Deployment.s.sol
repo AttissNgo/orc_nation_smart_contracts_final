@@ -251,7 +251,7 @@ contract DeploymentMumbai is DeploymentLib {
     ];
 
     uint256[] public mumbaiShares = [
-        2952, // company
+        2954, // company -- added %0.02 to make it all add up to 100%
         345, //radniel
         345, // jenelle
         345, // prachi

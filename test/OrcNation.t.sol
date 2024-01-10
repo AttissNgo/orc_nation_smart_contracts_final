@@ -420,7 +420,7 @@ contract OrcNationTest is Test, TestSetup {
     function test_ownerMint() public {
         assertEq(nft.getCurrentTokenId(), 0);
         uint256 ownerTokenBalBefore = nft.balanceOf(owner);
-        uint16 numMints = 10;
+        uint256 numMints = 10;
         vm.prank(owner);
         uint256 requestId = nft.ownerMint(numMints);
         vrf.fulfillRandomWords(requestId, address(nft));
@@ -437,9 +437,9 @@ contract OrcNationTest is Test, TestSetup {
     }
 
     function test_ownerMint_revert() public {
-        // not owner
-        vm.expectRevert(OrcNation.OrcNation__OnlyOwner.selector);
-        vm.prank(adminA);
+        // not admin
+        vm.expectRevert(OrcNation.OrcNation__OnlyAdmin.selector);
+        vm.prank(alice);
         nft.ownerMint(1);
         // exceed owner mints
         while(nft.ownerMintCounter() < nft.MAX_OWNER_MINTS()) {

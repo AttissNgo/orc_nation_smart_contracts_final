@@ -27,10 +27,9 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint16 public constant MAX_MINTS_PER_TX = 10;
     uint16 public constant MAX_OWNER_MINTS = 500;
 
-    uint16 public ownerMintCounter;
     uint16 public whitelistCounter; 
     uint8 public compMintCounter; 
-    
+    uint256 public ownerMintCounter;
 
     uint256 public immutable PRESALE;
     uint256 public immutable SALE_OPEN;
@@ -85,7 +84,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     error OrcNation__OnlyRaffle();
     error OrcNation__OnlyAdmin();
     error OrcNation__InvalidNewPrice();
-    error OrcNation__OnlyOwner();
     error OrcNation__WillExceedMaxOwnerMints();
 
     modifier onlyGovernor() {
@@ -211,8 +209,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         remainingUris = updatedRemainingUris;
     }
 
-    function ownerMint(uint16 _numberOfTokens) external returns (uint256 requestId) {
-        if(msg.sender != OWNER) revert OrcNation__OnlyOwner();
+    function ownerMint(uint256 _numberOfTokens) external onlyAdmin returns (uint256 requestId) {
         if(_numberOfTokens + ownerMintCounter > MAX_OWNER_MINTS) revert OrcNation__WillExceedMaxOwnerMints();
         if(_numberOfTokens > MAX_MINTS_PER_TX) revert OrcNation__MaxMintsPerTransactionExceeded();
         _checkSupply(_numberOfTokens);
@@ -301,7 +298,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     //////////////////
 
     function _handleRaffle() private {
-        // uint256 numMinted = tokenIds.current();
         if(tokenIds < 2000) return;
         uint256 tokenThreshold;
         if(tokenIds >= 2000 && tokenIds < 4000) tokenThreshold = 2000;
@@ -363,7 +359,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
 
     function getCurrentTokenId() public view returns (uint256) {
         return tokenIds;
-        // return tokenIds.current();
     }
 
     function getBatchTokens(uint256 _requestId) public view returns (uint256[] memory) {
@@ -380,12 +375,10 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
 
     function getWhitelistCount() public view returns (uint256) {
         return whitelistCounter;
-        // return whitelistCounter.current();
     }
 
     function getCompMintCount() public view returns (uint256) {
         return compMintCounter;
-        // return compMintCounter.current();
     }
 
     function getBuyers() public view returns (address[] memory) {
@@ -399,16 +392,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     function getBuyerByIndex(uint256 index) public view returns (address) {
         return buyers[index];
     }
-
-    // function getVRFConfig() external view returns(bytes32, uint64, uint16, uint32, uint32) {
-    //     return(
-    //         keyHash, 
-    //         subscriptionId, 
-    //         requestConfirmations, 
-    //         callbackGasLimit, 
-    //         numWords
-    //     );
-    // }
 
     /////////////////////////////
     ///   INTERFACE SUPPORT   ///

@@ -9,25 +9,25 @@ contract OwnerMint is Script {
 
     function setUp() public {}
 
-    // function run() public {
-    //     // get proper deployed address and instantiate IOrcNation
-    //     console.log(_message);
-    // }
-
     function mint(string memory _chain) public {
         string memory file = vm.readFile("./json_out/deployedAddresses.json");
         bool exists = vm.keyExists(file, string.concat(".", _chain));
         require(exists, "no records found");
         string memory key = string.concat(".", _chain, ".OrcNation");
         address orcNation = vm.parseJsonAddress(file, key);
-        // uint256 test = IOrcNation(orcNation).getCurrentTokenId();
-        // console.log(test);
-        uint16 numMinted = IOrcNation(orcNation).ownerMintCounter();
-        uint16 maxOwnerMints = IOrcNation(orcNation).MAX_OWNER_MINTS();
-        console.log(maxOwnerMints);
+ 
+        uint256 ownerPrivateKey = vm.envUint("MUMBAI_PK_1");
+        address owner = IOrcNation(orcNation).OWNER();
+        console.log("attempting 50 owner mints...");
+        for(uint i; i < 5; ++i) {
+            vm.startBroadcast(ownerPrivateKey);
+            IOrcNation(orcNation).ownerMint(10);
+            vm.stopBroadcast();
+        }
+        console.log("tokens minted");
+        uint256 ownerBalance = IOrcNation(orcNation).balanceOf(owner);
+        console.log("current owner balance: %s tokens", ownerBalance);
+
     }
 
-    function testMsg(string memory _message) public {
-        console.log(_message);
-    } // to run with args forge script script/OwnerMint.s.sol:OwnerMint --sig "testMsg(string)" "someMessage"
 }
