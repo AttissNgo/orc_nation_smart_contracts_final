@@ -131,14 +131,14 @@ contract PaymentSplitter {
             revert PaymentSplitter__InvalidRaffle();
         }
         if(_tokenThreshold == 4000) {
-            uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD);
-            uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD);
-            uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD);
+            // uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD);
+            // uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD);
+            // uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD);
 
             // MUMBAI test prize amounts:
-            // uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD) / 100000;
-            // uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD) / 100000;
-            // uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD) / 100000;
+            uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD) / 100000;
+            uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD) / 100000;
+            uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD) / 100000;
 
             uint256[] memory prizes = new uint256[](3);
             prizes[0] = firstPrize;
@@ -146,19 +146,19 @@ contract PaymentSplitter {
             prizes[2] = thirdPrize;
             return(prizes, firstPrize + secondPrize + thirdPrize);
         } else if (_tokenThreshold == 6000) {
-            uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD);
+            // uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD);
 
             // MUMBAI test prize amount:
-            // uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD) / 100000;
+            uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD) / 100000;
 
             uint256[] memory prizes = new uint256[](1);
             prizes[0] = prizeAmount;
             return(prizes, prizeAmount);
         } else {
-            uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD);
+            // uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD);
 
             // MUMBAI test prize amount
-            // uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD) / 100000;
+            uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD) / 100000;
             
             uint256[] memory prizes = new uint256[](1);
             prizes[0] = prizeAmount;

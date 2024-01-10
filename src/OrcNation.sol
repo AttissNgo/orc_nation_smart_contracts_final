@@ -247,10 +247,10 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         if(block.timestamp >= PRESALE && block.timestamp < SALE_OPEN) {
             price = (price * 85)/100;
         }
-        return price;
+        // return price;
 
         // MUMBAI TEST PRICE
-        // return price/100000;
+        return price/100000;
     }
 
     function getPriceInMATIC() public view returns (uint256) {
