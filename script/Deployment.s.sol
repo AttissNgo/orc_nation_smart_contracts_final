@@ -288,10 +288,10 @@ contract DeploymentMumbai is DeploymentLib {
         pricefeedAddress = 0xd0D5e3DB44DE05E9F294BB0a3bEEaF030DE24Ada; // mumbai testnet
         vrfAddress = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; // mumbai testnet
         // sale times
-        presaleTime = block.timestamp + 100;
-        publicSaleTime = block.timestamp + 1 days;
+        presaleTime = block.timestamp + 60;
+        publicSaleTime = block.timestamp + 120;
         // uri & governance
-        baseUri = "ipfs://bafybeihtjotnsuu5zgv2miitn6garjwfavprkivrjswixcm73sbyrpusxy/"; 
+        baseUri = "ipfs://bafybeibrqntuuyzaz4sh7hs244rxlvksvcqrgzm6a5z3hedphdcsfse3gm/"; 
         sigsRequired = 2;
         // set json variables
         obj1 = "mumbai";
