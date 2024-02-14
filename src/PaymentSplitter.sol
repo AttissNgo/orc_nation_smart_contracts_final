@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Interfaces/IRaffle.sol";
-import "./Interfaces/IPricefeed.sol";
-
 contract PaymentSplitter {
 
-    IPricefeed public immutable PRICEFEED;
     address public immutable GOVERNOR;
-    IRaffle public immutable RAFFLE;
     
     uint256 private totalReleased;
     uint256 private totalShares;
@@ -17,17 +12,9 @@ contract PaymentSplitter {
     address[] private payees;
     mapping(address => bool) public isPayee;
 
-    // raffle
-    uint256 public constant RAFFLE_4000_FIRST_PRIZE_USD = 2500;
-    uint256 public constant RAFFLE_4000_SECOND_PRIZE_USD = 500;
-    uint256 public constant RAFFLE_4000_THIRD_PRIZE_USD = 100;
-    uint256 public constant RAFFLE_6000_PRIZE_USD = 5000;
-    uint256 public constant RAFFLE_FINAL_GRAND_PRIZE_USD = 10000;
-
     event FundsReceived(address from, uint256 amount);
     event PayeeAdded(address payee, uint256 share);
     event PaymentTransferred(address payee, address recipient, uint256 amount);
-    event RaffleWinningsTransferred(uint256 tokenThreshold, uint256 amount);
 
     error PaymentSplitter__NoPayees();
     error PaymentSplitter__PayeesAndSharesMismatched();
@@ -41,9 +28,6 @@ contract PaymentSplitter {
     error PaymentSplitter__PaymentTransferFailed();
     error PaymentSplitter__GovernorMustBeFirstPayeeAccount();
     error PaymentSplitter__PriceFeedAnswerNegative();
-    error PaymentSplitter__RaffleNotComplete();
-    error PaymentSplitter__InvalidRaffle();
-    error PaymentSplitter__RaffleTransferFailed();
     error PaymentSplitter__CompanyMustUseClaimCompanyShare();
 
     modifier onlyGovernor() {
@@ -54,9 +38,7 @@ contract PaymentSplitter {
     constructor(
         address[] memory _payees, 
         uint256[] memory _shares,
-        address _pricefeed,
-        address _governor,
-        address _raffle
+        address _governor
     ) 
         payable 
     {
@@ -71,8 +53,6 @@ contract PaymentSplitter {
         // shares must total exactly 10000 ... 10000/100 = 100%
         if(shareSum != 10000) revert PaymentSplitter__SharesMustTotalOneHundredPercent();
         GOVERNOR = _governor;
-        PRICEFEED = IPricefeed(_pricefeed);
-        RAFFLE = IRaffle(_raffle);
         for(uint i = 0; i < _payees.length; ++i) {
             _addPayee(_payees[i], _shares[i]);
         }
@@ -103,67 +83,6 @@ contract PaymentSplitter {
         (bool success, ) = payable(_recipient).call{value: payment}("");
         if(!success) revert PaymentSplitter__PaymentTransferFailed();
         return payment;
-    }
-
-    // transfer RAFFLE PRIZES
-    function convertToMATIC(uint256 _amountInUSD) public view returns (uint256) {
-        (,int price,,,) = PRICEFEED.latestRoundData();
-        if(price < 0) revert PaymentSplitter__PriceFeedAnswerNegative();
-        int256 decimals = int256(10 ** PRICEFEED.decimals());
-        int256 usdPriceDecimals = int256(_amountInUSD * 1e18);
-        return uint256(usdPriceDecimals / price * decimals);
-    }
-
-    function transferRaffleWinnings(uint256 _tokenThreshold) external onlyGovernor {
-        if(!RAFFLE.raffleComplete(_tokenThreshold)) revert PaymentSplitter__RaffleNotComplete();
-        (uint[] memory prizes, uint256 totalPrizeAmount) = getRafflePrizeAmount(_tokenThreshold);
-        if(totalPrizeAmount == 0) revert PaymentSplitter__InvalidRaffle();
-        if(address(this).balance < totalPrizeAmount) revert PaymentSplitter__InsufficientContractBalance();
-        // subtract from company shares
-        totalReleased += totalPrizeAmount;
-        amountReleased[GOVERNOR] += totalPrizeAmount; 
-        RAFFLE.receiveRafflePrize{value: totalPrizeAmount}(_tokenThreshold, prizes);
-        emit RaffleWinningsTransferred(_tokenThreshold, totalPrizeAmount);
-    }
-
-    function getRafflePrizeAmount(uint256 _tokenThreshold) public view returns (uint256[] memory, uint256) {
-        if(_tokenThreshold != 4000 && _tokenThreshold != 6000 && _tokenThreshold != 10000) {
-            revert PaymentSplitter__InvalidRaffle();
-        }
-        if(_tokenThreshold == 4000) {
-            // uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD);
-            // uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD);
-            // uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD);
-
-            // MUMBAI test prize amounts:
-            uint256 firstPrize = convertToMATIC(RAFFLE_4000_FIRST_PRIZE_USD) / 100000;
-            uint256 secondPrize = convertToMATIC(RAFFLE_4000_SECOND_PRIZE_USD) / 100000;
-            uint256 thirdPrize = convertToMATIC(RAFFLE_4000_THIRD_PRIZE_USD) / 100000;
-
-            uint256[] memory prizes = new uint256[](3);
-            prizes[0] = firstPrize;
-            prizes[1] = secondPrize;
-            prizes[2] = thirdPrize;
-            return(prizes, firstPrize + secondPrize + thirdPrize);
-        } else if (_tokenThreshold == 6000) {
-            // uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD);
-
-            // MUMBAI test prize amount:
-            uint256 prizeAmount = convertToMATIC(RAFFLE_6000_PRIZE_USD) / 100000;
-
-            uint256[] memory prizes = new uint256[](1);
-            prizes[0] = prizeAmount;
-            return(prizes, prizeAmount);
-        } else {
-            // uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD);
-
-            // MUMBAI test prize amount
-            uint256 prizeAmount = convertToMATIC(RAFFLE_FINAL_GRAND_PRIZE_USD) / 100000;
-            
-            uint256[] memory prizes = new uint256[](1);
-            prizes[0] = prizeAmount;
-            return(prizes, prizeAmount);
-        }
     }
 
     function _addPayee(address _payee, uint256 _share) private {

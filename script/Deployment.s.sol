@@ -5,7 +5,6 @@ import "forge-std/Script.sol";
 import "../src/Governor.sol";
 import "../src/OrcNation.sol";
 import "../src/PaymentSplitter.sol";
-import "../src/Raffle.sol";
 import "../test/PriceFeedMock.sol";
 import "chainlink/VRFCoordinatorV2Mock.sol";
 
@@ -17,7 +16,6 @@ contract DeploymentLib is Script {
     Governor public governor;
     PaymentSplitter public paymentSplitter;
     OrcNation public nft;
-    Raffle public raffle;
     address[] public contractAddresses;
 
     // sale
@@ -56,14 +54,10 @@ contract DeploymentLib is Script {
         governor = new Governor(admins, sigsRequired);
         payees[0] = address(governor);
 
-        uint64 nonce = vm.getNonce(vm.addr(_deployerPrivateKey));
-        address computedRaffleAddr = vm.computeCreateAddress(vm.addr(_deployerPrivateKey), nonce + 2);
         paymentSplitter = new PaymentSplitter(
             payees, 
             shares, 
-            pricefeedAddress, 
-            address(governor),
-            computedRaffleAddr
+            address(governor)
         );
 
         nft = new OrcNation(
@@ -71,20 +65,11 @@ contract DeploymentLib is Script {
             pricefeedAddress,
             address(governor),
             address(paymentSplitter),
-            computedRaffleAddr,
             owner,
             presaleTime, 
             publicSaleTime, 
             subscriptionId,
             baseUri
-        );
-
-        raffle = new Raffle(
-            vrfAddress, 
-            subscriptionId, 
-            address(nft),
-            address(paymentSplitter),
-            address(governor)
         );
     }
 
@@ -93,8 +78,7 @@ contract DeploymentLib is Script {
         address _vrf,
         address _governor,
         address _paymentSplitter,
-        address _orcNation,
-        address _raffle
+        address _orcNation
     ) 
         internal 
     {
@@ -108,8 +92,6 @@ contract DeploymentLib is Script {
         contractAddresses.push(address(paymentSplitter));
         contractNames[_orcNation] = "OrcNation";
         contractAddresses.push(_orcNation);
-        contractNames[_raffle] = "Raffle";
-        contractAddresses.push(_raffle);
     }
 
     function _serializeAddr(
@@ -140,10 +122,6 @@ contract DeploymentLib is Script {
         string memory paymentSplitterAbi = vm.readFile("./out/PaymentSplitter.sol/PaymentSplitter.json");
         path = "./json_out/PaymentSplitterAbi.json";
         vm.writeFile(path, paymentSplitterAbi);
-
-        string memory raffleAbi = vm.readFile("./out/Raffle.sol/Raffle.json");
-        path = "./json_out/RaffleAbi.json";
-        vm.writeFile(path, raffleAbi);
     }
 
 }
@@ -204,8 +182,7 @@ contract DeploymentLocal is DeploymentLib {
             address(vrfMock),
             address(governor),
             address(paymentSplitter),
-            address(nft),
-            address(raffle)
+            address(nft)
         );
 
         // write addresses to json
@@ -312,8 +289,7 @@ contract DeploymentMumbai is DeploymentLib {
             vrfAddress,
             address(governor),
             address(paymentSplitter),
-            address(nft),
-            address(raffle)
+            address(nft)
         );
 
         // write addresses to json
@@ -419,8 +395,7 @@ contract DeploymentPolygon is DeploymentLib {
             vrfAddress,
             address(governor),
             address(paymentSplitter),
-            address(nft),
-            address(raffle)
+            address(nft)
         );
 
         // write addresses to json

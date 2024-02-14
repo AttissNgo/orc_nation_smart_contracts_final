@@ -11,7 +11,6 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
     event FundsReceived(address from, uint256 amount);
     event PayeeAdded(address payee, uint256 share);
     event PaymentTransferred(address payee, address recipient, uint256 amount);
-    event RaffleWinningsTransferred(uint256 tokenThreshold, uint256 amount);
 
     function setUp() public {
         _setUp();
@@ -29,9 +28,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         for(uint i = 0; i < payees.length; ++i) {
             assertEq(paymentSplitter.getShare(payees[i]), shares[i]);
         }
-        assertEq(address(paymentSplitter.RAFFLE()), address(raffle));
         assertEq(address(paymentSplitter.GOVERNOR()), address(governor));
-        assertEq(address(paymentSplitter.PRICEFEED()), address(pricefeed));
     }
 
     function test_constructor_revert() public {
@@ -42,9 +39,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         paymentSplitter = new PaymentSplitter(
             noPayees, 
             noShares, 
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
         // company (governor) not first payee
         address[] memory governorNotFirst = payees;
@@ -54,9 +49,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         paymentSplitter = new PaymentSplitter(
             governorNotFirst, 
             shares, 
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
         // shares do not total to 100%
         uint256[] memory sharesNot100Percent = shares;
@@ -65,9 +58,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         paymentSplitter = new PaymentSplitter(
             payees, 
             sharesNot100Percent, 
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
         // payees & shares mismatched
         shares.push(42); // add another share
@@ -76,9 +67,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
             payees, 
             // mismatchedShares, 
             shares,
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
     }
 
@@ -90,9 +79,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         paymentSplitter = new PaymentSplitter(
             payeesWithZeroAddress, 
             shares, 
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
         // share is 0
         uint256[] memory sharesWithZeroAmount = shares;
@@ -102,9 +89,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         paymentSplitter = new PaymentSplitter(
             payees,
             sharesWithZeroAmount,
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
         // duplicate payee address
         address[] memory payeesWithDuplicate = payees;
@@ -113,9 +98,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         paymentSplitter = new PaymentSplitter(
             payeesWithDuplicate,
             shares,
-            address(pricefeed), 
-            address(governor),
-            address(raffle)
+            address(governor)
         );
     }
 

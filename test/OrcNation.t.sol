@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../src/OrcNation.sol";
 import "../src/PaymentSplitter.sol";
-import "../src/Raffle.sol";
 import "./PriceFeedMock.sol";
 import "chainlink/VRFCoordinatorV2Mock.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -14,9 +13,9 @@ import "forge-std/console.sol";
 contract OrcNationTest is Test, TestSetup {
     using Strings for uint256;
 
-    address dummyAddr = vm.addr(999);
-
     event VRFRequestCreated(uint256 requestId);
+
+    address[] public raffleWinners = [alice, bob, carlos, david, vm.addr(32894723432947)];
 
     function setUp() public {
         _setUp();
@@ -30,7 +29,6 @@ contract OrcNationTest is Test, TestSetup {
         assertEq(address(nft.VRF_COORDINATOR()), address(vrf));
         assertEq(address(nft.PRICEFEED()), address(pricefeed));
         assertEq(address(nft.PAYMENT_SPLITTER()), address(paymentSplitter));
-        assertEq(address(nft.RAFFLE()), address(raffle));
         assertEq(address(nft.GOVERNOR()), address(governor));
         assertEq(nft.getRoyaltyReceiver(), company);
         assertEq(nft.getBaseUri(), uri);
@@ -124,7 +122,6 @@ contract OrcNationTest is Test, TestSetup {
             address(pricefeed),
             address(governor),
             address(paymentSplitter),
-            dummyAddr,
             owner,
             block.timestamp + 300, // presale > sale
             block.timestamp + 200,
@@ -137,7 +134,6 @@ contract OrcNationTest is Test, TestSetup {
             address(pricefeed),
             address(governor),
             address(paymentSplitter),
-            dummyAddr,
             owner,
             block.timestamp - 1, // presale < now
             block.timestamp + 200,
@@ -153,7 +149,7 @@ contract OrcNationTest is Test, TestSetup {
     function test_onlyGovernor_modifier() public {
         vm.expectRevert(OrcNation.OrcNation__OnlyGovernor.selector);
         vm.prank(owner);
-        nft.reducePrice(64);
+        nft.setTokenPrice(64);
     }
 
     function test_onlyAdmin_modifier() public {
@@ -365,27 +361,28 @@ contract OrcNationTest is Test, TestSetup {
         vm.expectRevert(OrcNation.OrcNation__CompMintAlreadyAssignedToAddress.selector);
         vm.prank(owner);
         nft.assignCompMint(alice);
-        
-        // already claimed comp
-        vm.prank(owner);
-        nft.assignCompMint(bob);
-        vm.prank(bob);
-        nft.mintComp();
-        vm.expectRevert(OrcNation.OrcNation__CompMintAlreadyClaimed.selector);
-        vm.prank(owner);
-        nft.assignCompMint(bob);
 
         // max comps exceeded
         uint256 i = 0;
-        while(nft.getCompMintCount() < nft.MAX_COMP_MINTS()) {
+        while(nft.getCompMintCount() < 50) {
             vm.prank(owner);
             nft.assignCompMint(buyers[i]);
             ++i;
         }
+        // console.log(nft.getCompMintCount());
+        // console.log(nft.raffleWinnersAdded());
+        vm.expectRevert(bytes("must save 5 mints for raffle"));
+        vm.prank(owner);
+        nft.assignCompMint(carlos);
+            // assign raffle2000 winners
+        bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        util_executeGovernorTx(txIndex);
         assertEq(nft.getCompMintCount(), nft.MAX_COMP_MINTS());
         vm.expectRevert(OrcNation.OrcNation__MaxCompMintsExceeded.selector);
         vm.prank(owner);
-        nft.assignCompMint(carlos);
+        nft.assignCompMint(vm.addr(129837219378917398));
     }
 
     function test_mintComp() public {
@@ -459,6 +456,30 @@ contract OrcNationTest is Test, TestSetup {
         nft.ownerMint(1);
     }
 
+    function test_addRaffle2000Winners() public {
+        // alice mints one comp
+        vm.prank(owner);
+        nft.assignCompMint(alice);
+        warp_to_presale();
+        vm.prank(alice);
+        nft.mintComp();
+        // remaining 1999 tokens are purchased
+        util_mint_tokens(1999);
+        // raffle is drawn off-chain & winners added
+        bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        util_executeGovernorTx(txIndex);
+
+        // bob can mint
+        vm.prank(bob);
+        nft.mintComp();
+
+        // alice can mint again
+        vm.prank(alice);
+        nft.mintComp();
+    }
+
     /////////////////////
     ///   TOKEN URI   ///
     /////////////////////
@@ -503,13 +524,13 @@ contract OrcNationTest is Test, TestSetup {
         }
     }
 
-    ////////////////////////
-    ///   REDUCE PRICE   ///
-    ////////////////////////
+    /////////////////////
+    ///   SET PRICE   ///
+    /////////////////////
 
-    function test_reducePrice() public {
+    function test_setTokenPrice() public {
         uint256 newPrice = 33;
-        bytes memory data = abi.encodeWithSignature("reducePrice(uint256)", newPrice);
+        bytes memory data = abi.encodeWithSignature("setTokenPrice(uint256)", newPrice);
         vm.prank(adminA);
         uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
         util_executeGovernorTx(txIndex);

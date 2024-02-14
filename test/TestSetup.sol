@@ -5,10 +5,8 @@ import "forge-std/Test.sol";
 import "../src/Governor.sol";
 import "../src/OrcNation.sol";
 import "../src/PaymentSplitter.sol";
-import "../src/Raffle.sol";
 import "./PriceFeedMock.sol";
 import "chainlink/VRFCoordinatorV2Mock.sol";
-// import "solmate/src/utils/LibString.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TestSetup is Test {
@@ -16,7 +14,6 @@ contract TestSetup is Test {
     Governor public governor;
     OrcNation public nft;
     PaymentSplitter public paymentSplitter;
-    Raffle public raffle;
     PriceFeedMock public pricefeed;
     VRFCoordinatorV2Mock public vrf;
 
@@ -95,16 +92,11 @@ contract TestSetup is Test {
         governor = new Governor(admins, signaturesNeeded);
         // add governor address to payee array
         payees[0] = address(governor);
-        // deploy payment splitter// compute future raffle address
-        uint64 nonce = vm.getNonce(company);
-        // address computedRaffleAddr = computeCreateAddress(company, nonce + 2);
-        address computedRaffleAddr = vm.computeCreateAddress(company, nonce + 2);
+        // deploy payment splitter
         paymentSplitter = new PaymentSplitter(
             payees, 
             shares, 
-            address(pricefeed), 
-            address(governor),
-            computedRaffleAddr
+            address(governor)
         );
         // deploy Orc Nation 
         nft = new OrcNation(
@@ -112,20 +104,11 @@ contract TestSetup is Test {
             address(pricefeed),
             address(governor),
             address(paymentSplitter),
-            computedRaffleAddr,
             owner,
             block.timestamp + 100,
             block.timestamp + 200,
             subscriptionId,
             uri
-        );
-        // deploy raffle
-        raffle = new Raffle(
-            address(vrf), 
-            subscriptionId, 
-            address(nft),
-            address(paymentSplitter),
-            address(governor)
         );
         vm.stopPrank();
 
@@ -164,7 +147,6 @@ contract TestSetup is Test {
         vm.label(company, "Company");
         vm.label(address(vrf), "VRF");
         vm.label(address(paymentSplitter), "Payment Splitter");
-        vm.label(address(raffle), "Raffle Contract");
         vm.label(address(nft), "Orc Nation");
 
     }
@@ -204,46 +186,6 @@ contract TestSetup is Test {
                 if(tokensMinted >= _numTokens) break;
                 uint256 numMints = 5;
                 if(numMints + tokensMinted > _numTokens) {
-                    numMints = _numTokens - tokensMinted;
-                }
-                if(numMints == 0) break;
-                uint256 value = nft.calculatePrice(numMints);
-                if(buyers[i].balance < value) {
-                    vm.deal(buyers[i], value);
-                }
-                vm.prank(buyers[i]);
-                uint256 requestId = nft.mint{value: value}(buyers[i], numMints);
-                vrf.fulfillRandomWords(requestId, address(nft));
-                tokensMinted += numMints;
-            }
-        }
-        util_handle_raffle_fulfillment();
-        vm.resumeGasMetering();
-    }
-
-    uint256[] public raffleThresholds = [2000, 4000, 6000, 10000];
-
-    function util_handle_raffle_fulfillment() public {
-        for(uint i; i < raffleThresholds.length; ++i) {
-            if(nft.getCurrentTokenId() < raffleThresholds[0]) return;
-            if(!raffle.raffleDrawn(raffleThresholds[i])) break;
-            if(!raffle.raffleComplete(raffleThresholds[i])) {
-                console.log("Fullfilling: %s", raffleThresholds[i]);
-                uint256 requestId = raffle.requestIds(raffleThresholds[i]);
-                vrf.fulfillRandomWords(requestId, address(raffle));
-            }
-        }
-    }
-
-    function util_mint_tokens_no_raffle_fulfill(uint256 _numTokens) public {
-        if(block.timestamp < nft.SALE_OPEN()) warp_to_sale_open();
-        vm.pauseGasMetering();
-        uint256 tokensMinted = 0;
-        while(tokensMinted < _numTokens) {
-            for(uint i; i < buyers.length; ++i) {
-                if(tokensMinted >= _numTokens) break;
-                uint256 numMints = 5;
-                while(numMints + tokensMinted > _numTokens) {
                     numMints = _numTokens - tokensMinted;
                 }
                 if(numMints == 0) break;
