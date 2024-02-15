@@ -14,3 +14,27 @@ The following script can be run by any admin:
 ```
 forge script script/OwnerMint.s.sol:OwnerMint --sig "mint(string)" "mumbai" --rpc-url $MUMBAI_RPC_URL --broadcast
 ```
+
+
+# Running in a local environment
+Instantiate anvil
+```
+anvil
+```
+
+Deploy contracts
+```
+forge script script/Deployment.s.sol:DeploymentLocal --rpc-url "http://127.0.0.1:8545" --broadcast
+```
+
+Warp forward one week to pass straight to public sale
+```
+RPC="http://127.0.0.1:8545"
+cast rpc anvil_setBlockTimestampInterval 604800 --rpc-url $RPC
+cast rpc anvil_mine 1 --rpc-url $RPC
+cast rpc anvil_removeBlockTimestampInterval --rpc-url $RPC
+```
+Mint some tokens
+```
+forge script script/TestingEnv.s.sol:TestingEnvLocal --sig "mintTokens(uint256)" <number of tokens> --rpc-url "http://127.0.0.1:8545" --broadcast
+```

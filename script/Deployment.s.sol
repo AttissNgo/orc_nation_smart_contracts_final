@@ -48,6 +48,10 @@ contract DeploymentLib is Script {
         vrfMock = new VRFCoordinatorV2Mock(1, 1);
         subscriptionId = vrfMock.createSubscription();
         vrfMock.fundSubscription(subscriptionId, 10 ether);
+
+        pricefeedAddress = address(pricefeedMock);
+        vrfAddress = address(vrfMock);
+        
     }
 
     function _deployContracts(uint256 _deployerPrivateKey) internal {

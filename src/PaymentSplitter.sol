@@ -6,7 +6,7 @@ contract PaymentSplitter {
     address public immutable GOVERNOR;
     
     uint256 private totalReleased;
-    uint256 private totalShares;
+    uint256 private totalShares; // represented as basis points, i.e. 50% == 5000
     mapping(address => uint256) private share; 
     mapping(address => uint256) private amountReleased; 
     address[] private payees;
@@ -98,13 +98,15 @@ contract PaymentSplitter {
 
     function paymentDue(address payee) public view returns (uint256) {
         uint256 totalReceived = getTotalReceived();
-        uint256 payment = _percentage((totalReceived * share[payee]) / totalShares) - amountReleased[payee];
+        // uint256 payment = _percentage((totalReceived * share[payee]) / totalShares) - amountReleased[payee];
+        uint256 payment = ((totalReceived * share[payee]) / totalShares) - amountReleased[payee];
+
         return payment;
     }
 
-    function _percentage(uint256 _amount) private pure returns (uint256) {
-        return _amount/100;
-    } 
+    // function _percentage(uint256 _amount) private pure returns (uint256) {
+    //     return _amount/100;
+    // } 
 
     // getters 
     function getTotalReceived() public view returns (uint256) {
