@@ -270,7 +270,7 @@ contract DeploymentMumbai is DeploymentLib {
         vrfAddress = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed; // mumbai testnet
         // sale times
         presaleTime = block.timestamp + 60;
-        publicSaleTime = block.timestamp + 120;
+        publicSaleTime = block.timestamp + 2 days;
         // uri & governance
         baseUri = "ipfs://bafybeibrqntuuyzaz4sh7hs244rxlvksvcqrgzm6a5z3hedphdcsfse3gm/"; 
         sigsRequired = 2;

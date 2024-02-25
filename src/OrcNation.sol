@@ -20,10 +20,12 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     uint256 public PRICE_IN_USD = 65; // can be set by governor action
     uint16 public constant MAX_SUPPLY = 10000;
     uint16 public constant MAX_WHITELISTEES = 500;
-    uint16 public constant MAX_PRESALE_MINTS = 3;
-    uint16 public constant MAX_COMP_MINTS = 55; // five for raffle2000 winners
-    uint16 public constant MAX_MINTS_PER_TX = 10;
+    uint8 public constant MAX_PRESALE_MINTS = 3;
+    uint8 public constant MAX_COMP_MINTS = 50; 
+    uint8 public constant MAX_RAFFLE_MINTS = 5;
+    uint8 public constant MAX_MINTS_PER_TX = 10;
     uint16 public constant MAX_OWNER_MINTS = 500;
+
 
     uint16 public whitelistCounter; 
     uint8 public compMintCounter; 
@@ -50,6 +52,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     address[] private buyers;
     mapping(address => bool) public isBuyer;
     bool public raffleWinnersAdded;
+    mapping(address => bool) public canMintRaffle;
 
     // VRF config
     bytes32 public keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
@@ -83,6 +86,9 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     error OrcNation__InvalidNewPrice();
     error OrcNation__WillExceedMaxOwnerMints();
     error OrcNation__RaffleWinnersAlreadyAdded();
+    error OrcNation__MaxRaffleWinnersExceeded();
+    error OrcNation__NotEligibleForRaffleMint();
+    error OrcNation__RaffleOnlyAfter2000Tokens();
 
     modifier onlyGovernor() {
         if(msg.sender != GOVERNOR) revert OrcNation__OnlyGovernor();
@@ -91,6 +97,11 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
 
     modifier onlyAdmin() {
         if(!IGovernor(GOVERNOR).isAdmin(msg.sender)) revert OrcNation__OnlyAdmin();
+        _;
+    }
+
+    modifier onlyDuringMinting() {
+        if(!isMintingOpen()) revert OrcNation__MintingNotOpen();
         _;
     }
 
@@ -131,8 +142,12 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     ///   MINTING   ///
     ///////////////////
 
-    function mint(address _to, uint256 _numberOfTokens) external payable returns (uint256) {
-        if(!isMintingOpen()) revert OrcNation__MintingNotOpen();
+    function mint(
+        address _to, 
+        uint256 _numberOfTokens
+    ) 
+        external payable onlyDuringMinting returns (uint256) 
+    {
         if(block.timestamp >= PRESALE && block.timestamp < SALE_OPEN) {
             if(!isWhitelisted(_to)) revert OrcNation__NotWhitelisted();
             if(balanceOf(_to) + _numberOfTokens > MAX_PRESALE_MINTS) {
@@ -146,20 +161,27 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
 
         uint256 price = calculatePrice(_numberOfTokens);
         if(msg.value < price) revert OrcNation__InsufficientPayment(price);
-        addToRaffle(_to);
         (bool success, ) = PAYMENT_SPLITTER.call{value: msg.value}(""); 
         require(success, "Payment transfer failed");
+        addToRaffle(_to);
 
         uint256 requestId = _mintTokens(_to, _numberOfTokens);
         return requestId;
     }
 
-    function mintComp() external returns (uint256) {
-        if(!isMintingOpen()) revert OrcNation__MintingNotOpen();
+    function mintComp() external onlyDuringMinting returns (uint256) {
         if(!isCompMintRecipient(msg.sender)) revert OrcNation__NotEligibleForCompMint();
         if(compMintClaimed[msg.sender]) revert OrcNation__CompMintAlreadyClaimed();
         _checkSupply(1);
         compMintClaimed[msg.sender] = true;
+        uint256 requestId = _mintTokens(msg.sender, 1); 
+        return requestId;
+    }
+
+    function mintRaffle() external onlyDuringMinting returns (uint256) {
+        if(!canMintRaffle[msg.sender]) revert OrcNation__NotEligibleForRaffleMint();
+        _checkSupply(1);
+        canMintRaffle[msg.sender] = false;
         uint256 requestId = _mintTokens(msg.sender, 1); 
         return requestId;
     }
@@ -242,10 +264,10 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         if(block.timestamp >= PRESALE && block.timestamp < SALE_OPEN) {
             price = (price * 85)/100;
         }
-        return price;
+        // return price;
 
-        // // MUMBAI TEST PRICE
-        // return price/100000;
+        // MUMBAI TEST PRICE
+        return price/100000;
     }
 
     function getPriceInMATIC() public view returns (uint256) {
@@ -269,14 +291,8 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     function assignCompMint(address _recipient) external onlyAdmin {
-        if(!raffleWinnersAdded) {
-            require(compMintCounter < 50, "must save 5 mints for raffle");
-        }
         if(isCompMintRecipient(_recipient)) revert OrcNation__CompMintAlreadyAssignedToAddress();
-        _assignCompMint(_recipient);
-    }
-
-    function _assignCompMint(address _recipient) private {
+        // _assignCompMint(_recipient);
         if(compMintCounter + 1 > MAX_COMP_MINTS) revert OrcNation__MaxCompMintsExceeded();
         ++compMintCounter;
         compMintRecipient[_recipient] = true;
@@ -306,10 +322,11 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     function addRaffle2000Winners(address[] calldata _winners) external onlyGovernor {
+        if(getCurrentTokenId() < 2000) revert OrcNation__RaffleOnlyAfter2000Tokens();
+        if(_winners.length > MAX_RAFFLE_MINTS) revert OrcNation__MaxRaffleWinnersExceeded();
         if(raffleWinnersAdded) revert OrcNation__RaffleWinnersAlreadyAdded();
         for(uint i = 0; i < _winners.length; ++i) {
-            if(compMintClaimed[_winners[i]]) compMintClaimed[_winners[i]] = false;
-            _assignCompMint(_winners[i]);
+            canMintRaffle[_winners[i]] = true;
         }
         raffleWinnersAdded = true;
         emit RaffleWinnersAdded(_winners);

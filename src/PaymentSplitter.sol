@@ -6,8 +6,8 @@ contract PaymentSplitter {
     address public immutable GOVERNOR;
     
     uint256 private totalReleased;
-    uint256 private totalShares; // represented as basis points, i.e. 50% == 5000
-    mapping(address => uint256) private share; 
+    uint256 private totalShares; 
+    mapping(address => uint256) private share; // represented as basis points, i.e. 50% == 5000
     mapping(address => uint256) private amountReleased; 
     address[] private payees;
     mapping(address => bool) public isPayee;

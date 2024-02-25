@@ -119,12 +119,12 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         uint256 totalReceived = paymentSplitter.getTotalReceived();
         assertEq(totalReceived, receiveAmount);
         assertEq(paymentSplitter.getTotalReleased(), 0); 
-        // nothing has been released, so payment due should be: ((totalReceived * share)/totalShares)/100  
+        // nothing has been released, so payment due should be: ((totalReceived * share)/totalShares)
         uint256 index = 1;
         assertEq(payees[index], owner);
         assertEq(
             paymentSplitter.paymentDue(owner), 
-            ((totalReceived * paymentSplitter.getShare(owner))) / paymentSplitter.getTotalShares() / 100
+            ((totalReceived * paymentSplitter.getShare(owner))) / paymentSplitter.getTotalShares() 
         );
     }
 
@@ -157,7 +157,7 @@ contract PaymentSplitterUnitTest is Test, TestSetup {
         contractBalBefore = address(paymentSplitter).balance;
         payees1BalBefore = payees[1].balance;
         uint256 payees1ClaimAmount_2 = paymentSplitter.paymentDue(payees[1]);
-        uint256 payees1ExpectedAmount = ((((receiveAmount * 2) * shares[1]) / 10000) / 100) - payees1ClaimAmount_1;
+        uint256 payees1ExpectedAmount = (((receiveAmount * 2) * shares[1]) / 10000) - payees1ClaimAmount_1;
         assertEq(payees1ClaimAmount_2, payees1ExpectedAmount);
         vm.prank(payees[1]);
         paymentSplitter.claimShare();

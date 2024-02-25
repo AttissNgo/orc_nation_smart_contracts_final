@@ -34,7 +34,13 @@ cast rpc anvil_setBlockTimestampInterval 604800 --rpc-url $RPC
 cast rpc anvil_mine 1 --rpc-url $RPC
 cast rpc anvil_removeBlockTimestampInterval --rpc-url $RPC
 ```
+
 Mint some tokens
 ```
 forge script script/TestingEnv.s.sol:TestingEnvLocal --sig "mintTokens(uint256)" <number of tokens> --rpc-url "http://127.0.0.1:8545" --broadcast
+```
+
+Create some dummy proposals in Governor
+```
+forge script script/TestingEnv.s.sol:TestingEnvLocal --sig "createDummyGovernorProposals()" --rpc-url "http://127.0.0.1:8545" --broadcast
 ```

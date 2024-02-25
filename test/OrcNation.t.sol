@@ -369,20 +369,10 @@ contract OrcNationTest is Test, TestSetup {
             nft.assignCompMint(buyers[i]);
             ++i;
         }
-        // console.log(nft.getCompMintCount());
-        // console.log(nft.raffleWinnersAdded());
-        vm.expectRevert(bytes("must save 5 mints for raffle"));
-        vm.prank(owner);
-        nft.assignCompMint(carlos);
-            // assign raffle2000 winners
-        bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
-        vm.prank(adminA);
-        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
-        util_executeGovernorTx(txIndex);
         assertEq(nft.getCompMintCount(), nft.MAX_COMP_MINTS());
         vm.expectRevert(OrcNation.OrcNation__MaxCompMintsExceeded.selector);
         vm.prank(owner);
-        nft.assignCompMint(vm.addr(129837219378917398));
+        nft.assignCompMint(vm.addr(2394782498237489274));
     }
 
     function test_mintComp() public {
@@ -457,27 +447,101 @@ contract OrcNationTest is Test, TestSetup {
     }
 
     function test_addRaffle2000Winners() public {
-        // alice mints one comp
-        vm.prank(owner);
-        nft.assignCompMint(alice);
         warp_to_presale();
-        vm.prank(alice);
-        nft.mintComp();
-        // remaining 1999 tokens are purchased
-        util_mint_tokens(1999);
+        for(uint i; i < raffleWinners.length; ++i) {
+            assertFalse(nft.canMintRaffle(raffleWinners[i]));
+        }
+        assertFalse(nft.raffleWinnersAdded());
+
+        util_mint_tokens(2000);
         // raffle is drawn off-chain & winners added
         bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
         vm.prank(adminA);
         uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
         util_executeGovernorTx(txIndex);
 
-        // bob can mint
-        vm.prank(bob);
-        nft.mintComp();
+        for(uint i; i < raffleWinners.length; ++i) {
+            assertTrue(nft.canMintRaffle(raffleWinners[i]));
+        }
+        assertTrue(nft.raffleWinnersAdded());
+    }
 
-        // alice can mint again
-        vm.prank(alice);
-        nft.mintComp();
+    function test_addRaffle2000Winners_revert() public {
+        warp_to_presale();
+        // too few sales
+        util_mint_tokens(1999);
+        assertEq(nft.getCurrentTokenId(), 1999);
+        bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        vm.expectRevert();
+        vm.prank(adminB);
+        governor.signTransaction(txIndex);
+
+        // too manny winners 
+        util_mint_tokens(1);
+        assertEq(nft.getCurrentTokenId(), 2000);
+        raffleWinners.push(vm.addr(238947837478));
+        data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        txIndex = governor.proposeTransaction(address(nft), 0, data);
+        vm.expectRevert();
+        vm.prank(adminB);
+        governor.signTransaction(txIndex);
+
+        // raffle winners already added
+        raffleWinners.pop();
+        assertEq(raffleWinners.length, 5);
+        data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        txIndex = governor.proposeTransaction(address(nft), 0, data);
+        util_executeGovernorTx(txIndex);
+        assertTrue(nft.raffleWinnersAdded());
+            // attempt to add again
+        data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        txIndex = governor.proposeTransaction(address(nft), 0, data);
+        vm.expectRevert();
+        vm.prank(adminB);
+        governor.signTransaction(txIndex);
+    }
+
+    function test_mintRaffle() public {
+        warp_to_presale();
+        util_mint_tokens(2000);
+        bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        util_executeGovernorTx(txIndex);
+
+        for(uint i; i < raffleWinners.length; ++i) {
+            uint256 tokenBalBefore = nft.balanceOf(raffleWinners[i]);
+            vm.prank(raffleWinners[i]);
+            nft.mintRaffle();
+            assertEq(nft.balanceOf(raffleWinners[i]), tokenBalBefore + 1);
+            assertFalse(nft.canMintRaffle(raffleWinners[i]));
+        }
+    }
+
+    function test_mintRaffle_revert() public {
+        warp_to_presale();
+        util_mint_tokens(2000);
+        bytes memory data = abi.encodeWithSignature("addRaffle2000Winners(address[])", raffleWinners);
+        vm.prank(adminA);
+        uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
+        util_executeGovernorTx(txIndex);
+
+        // not eligible
+        vm.prank(vm.addr(823764726486));
+        vm.expectRevert(OrcNation.OrcNation__NotEligibleForRaffleMint.selector);
+        nft.mintRaffle();
+
+        // already minted
+        vm.prank(raffleWinners[0]);
+        nft.mintRaffle();
+        vm.expectRevert(OrcNation.OrcNation__NotEligibleForRaffleMint.selector);
+        vm.prank(raffleWinners[0]);
+        nft.mintRaffle();
     }
 
     /////////////////////
@@ -537,10 +601,10 @@ contract OrcNationTest is Test, TestSetup {
         assertEq(nft.PRICE_IN_USD(), newPrice);
     }
 
-    function test_reducePrice_revert() public {
+    function test_setTokenPrice_revert() public {
         // too high
         uint256 invalidPrice = 98;
-        bytes memory data = abi.encodeWithSignature("reducePrice(uint256)", invalidPrice);
+        bytes memory data = abi.encodeWithSignature("setTokenPrice(uint256)", invalidPrice);
         vm.prank(adminA);
         uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
         vm.expectRevert();
@@ -548,7 +612,7 @@ contract OrcNationTest is Test, TestSetup {
         governor.signTransaction(txIndex);
         // too low
         invalidPrice = 31;
-        data = abi.encodeWithSignature("reducePrice(uint256)", invalidPrice);
+        data = abi.encodeWithSignature("setTokenPrice(uint256)", invalidPrice);
         vm.prank(adminA);
         txIndex = governor.proposeTransaction(address(nft), 0, data);
         vm.expectRevert();
