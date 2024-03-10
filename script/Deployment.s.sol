@@ -314,8 +314,7 @@ contract DeploymentPolygon is DeploymentLib {
 
     address[] public polygonAdmins = [
         0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan (personal)
-        0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss dev0
-        0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa, // attiss dev1
+        0xd5C53b14D0F213Fe8E4EdbDB5Aca5b61D63b3D5f, // attiss (trust)
         0xDE12A4d649A27e1280ce1a8ceFc0483d38276968 // femi
     ];
 
@@ -329,7 +328,7 @@ contract DeploymentPolygon is DeploymentLib {
         0x741395400a3C09776C7208e4407ADA95344ef158, // rodger
         0x322f441eD1d1dA7a26fd888128143A097C17c167, // head marketing
         0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan
-        0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss dev0
+        0xd5C53b14D0F213Fe8E4EdbDB5Aca5b61D63b3D5f, // attiss (trust)
         0x0aeE152ceF9fC90C975fdFD186e649fbbcE259e4, // shree
         0x48f25eF02FF0daC0666cCA23fFBb7759c146f8d9, // trevor
         0xDE12A4d649A27e1280ce1a8ceFc0483d38276968, // femi
