@@ -15,7 +15,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     IPricefeed public immutable PRICEFEED;
     address public immutable PAYMENT_SPLITTER;
     address public immutable GOVERNOR;
-    address public immutable OWNER;
 
     uint256 public PRICE_IN_USD = 65; // can be set by governor action
     uint16 public constant MAX_SUPPLY = 10000;
@@ -110,7 +109,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         address _priceFeed,
         address _governor,
         address _paymentSplitter,
-        address _owner,
+        address _royaltyReceiver,
         uint256 _presale,
         uint256 _saleOpen,
         uint64 _subscriptionId,
@@ -124,12 +123,11 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
         PRICEFEED = IPricefeed(_priceFeed);
         GOVERNOR = _governor;
         PAYMENT_SPLITTER = _paymentSplitter;
-        royaltyReceiver = msg.sender;
+        royaltyReceiver = _royaltyReceiver;
         baseUri = _baseUri;
         PRESALE = _presale;
         SALE_OPEN = _saleOpen;
         subscriptionId = _subscriptionId;
-        OWNER = _owner;
     }
 
     function setTokenPrice(uint256 _newPriceInUSD) external onlyGovernor {

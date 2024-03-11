@@ -98,15 +98,9 @@ contract PaymentSplitter {
 
     function paymentDue(address payee) public view returns (uint256) {
         uint256 totalReceived = getTotalReceived();
-        // uint256 payment = _percentage((totalReceived * share[payee]) / totalShares) - amountReleased[payee];
         uint256 payment = ((totalReceived * share[payee]) / totalShares) - amountReleased[payee];
-
         return payment;
     }
-
-    // function _percentage(uint256 _amount) private pure returns (uint256) {
-    //     return _amount/100;
-    // } 
 
     // getters 
     function getTotalReceived() public view returns (uint256) {

@@ -23,7 +23,7 @@ contract DeploymentLib is Script {
     uint256 publicSaleTime;
 
     // EOAs
-    address public owner;
+    address public royaltyReceiver;
     address[] public admins;
     address[] public payees;
     uint256[] public shares;
@@ -54,7 +54,7 @@ contract DeploymentLib is Script {
         
     }
 
-    function _deployContracts(uint256 _deployerPrivateKey) internal {
+    function _deployContracts() internal {
         governor = new Governor(admins, sigsRequired);
         payees[0] = address(governor);
 
@@ -69,7 +69,7 @@ contract DeploymentLib is Script {
             pricefeedAddress,
             address(governor),
             address(paymentSplitter),
-            owner,
+            royaltyReceiver,
             presaleTime, 
             publicSaleTime, 
             subscriptionId,
@@ -150,7 +150,7 @@ contract DeploymentLocal is DeploymentLib {
 
     function setUp() public {
         // set EOAs
-        owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // anvil 0
+        royaltyReceiver = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // anvil 0
         for(uint i; i < anvilAdmins.length; ++i) {
             admins.push(anvilAdmins[i]);
         }
@@ -176,7 +176,7 @@ contract DeploymentLocal is DeploymentLib {
 
         _deployMocks();
 
-        _deployContracts(deployerPrivateKey);
+        _deployContracts();
         
         vm.stopBroadcast();
         
@@ -253,7 +253,7 @@ contract DeploymentMumbai is DeploymentLib {
         // splitter checks
         uint256 sharesSum;
         // set EOAs
-        owner = 0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa; // attiss dev1 -
+        royaltyReceiver = 0xe540A4E03adeFB734ecE9d67E1A86199ee907Caa; // attiss dev1 -
         for(uint i; i < mumbaiAdmins.length; ++i) {
             admins.push(mumbaiAdmins[i]);
         }
@@ -283,7 +283,7 @@ contract DeploymentMumbai is DeploymentLib {
         uint256 deployerPrivateKey = vm.envUint("MUMBAI_PK_0"); // attiss dev0 account
         vm.startBroadcast(deployerPrivateKey);
         
-        _deployContracts(deployerPrivateKey);
+        _deployContracts();
 
         vm.stopBroadcast();
 
@@ -315,41 +315,41 @@ contract DeploymentPolygon is DeploymentLib {
     address[] public polygonAdmins = [
         0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan (personal)
         0xd5C53b14D0F213Fe8E4EdbDB5Aca5b61D63b3D5f, // attiss (trust)
-        0xDE12A4d649A27e1280ce1a8ceFc0483d38276968 // femi
+        0x4A3F12706E154ed0A73D13dE18704f4e88231fb3 // femi
     ];
 
     address[] public polygonPayees = [
-        address(0), // this gets changed to Governor address in run()
+        address(0), // company --- this gets changed to Governor address in run()
         0xA1Fa78C32C15a316436c243Bc3DABf9529c303a6, // radniel
         0xA4f65508C82130622Bda6a507d5606BC4A420bFa, // jenelle
         0xf0ce0cc50d7fdF9145b606Fa6B9b1880192E77d6, // prachi
-        0xB4BF6C646ceD30964Ab33F5C1dc61828167debd7, // ernsesto
+        0xB4BF6C646ceD30964Ab33F5C1dc61828167debd7, // ernesto
         0x52e34Eb7568F794797525f65De29f6FA569d8D34, // martin
         0x741395400a3C09776C7208e4407ADA95344ef158, // rodger
-        0x322f441eD1d1dA7a26fd888128143A097C17c167, // head marketing
+        0x322f441eD1d1dA7a26fd888128143A097C17c167, // 'revenue share'
         0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan
         0xd5C53b14D0F213Fe8E4EdbDB5Aca5b61D63b3D5f, // attiss (trust)
         0x0aeE152ceF9fC90C975fdFD186e649fbbcE259e4, // shree
         0x48f25eF02FF0daC0666cCA23fFBb7759c146f8d9, // trevor
-        0xDE12A4d649A27e1280ce1a8ceFc0483d38276968, // femi
+        0x512139DFaBb2848694dfD9B48e9a1Aa9264A0fA8, // femi
         0x44a6bf09A58faA2033a26A0bD5A91F982F21Cd3B, // discord 4 / set 1
         0x9b660b7106FBd0d7F334Bb3F7b5F08a8602535fe // discord 4 / set 2
     ];
 
     uint256[] public polygonShares = [
-        2952, // company
-        345, //radniel
-        345, // jenelle
-        345, // prachi
-        353, // ernesto
-        353, // martin
-        531, // rodger
-        690, // head marketing
-        1698, // johan
-        424, // attiss
+        3316, // company
+        280, //radniel
+        375, // jenelle
+        275, // prachi
+        375, // ernesto
+        220, // martin
+        540, // rodger
+        675, // revenue share
+        1675, // johan
+        475, // attiss
         424, // shree
-        424, // trevor
-        424, // femi
+        180, // trevor
+        500, // femi
         345, // discord 4 / set 1
         345 // discord 4 / set 2
     ];
@@ -358,7 +358,7 @@ contract DeploymentPolygon is DeploymentLib {
         // splitter checks
         uint256 sharesSum;
         // set EOAs
-        owner = 0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4; // johan owner address
+        royaltyReceiver = 0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4; // johan royaltyReceiver address
         for(uint i; i < polygonAdmins.length; ++i) {
             admins.push(polygonAdmins[i]);
         }
@@ -370,14 +370,14 @@ contract DeploymentPolygon is DeploymentLib {
         require(sharesSum == 10000, "shares don't total 100%");
         require(payees.length == shares.length, "mismatched addresses -> shares");
         // pricefeed & vrf config 
-        subscriptionId = 2867; // TODO: Johan must set subscription & consumers
+        subscriptionId = 1119; 
         pricefeedAddress = 0xAB594600376Ec9fD91F8e885dADF0CE036862dE0; // polygon mainnet
         vrfAddress = 0xAE975071Be8F8eE67addBC1A82488F1C24858067; // polygon mainnet
         // sale times
-        presaleTime = block.timestamp + 100;
-        publicSaleTime = block.timestamp + 1 days;
+        presaleTime = 1710529200; // 15 March 2024 12:00pm PST
+        publicSaleTime = 1711134000; // 22 March 2024 12:00pm PST
         // uri & governance
-        baseUri = "!!!!!!!!!!!!UNKOWN!!!!!!!!!!!!!!!!!"; // TODO: add correct URI
+        baseUri = "bafybeigxu4n6gnjt6ka4ugfgckyqwzff4oxc27jj5y7ifcomvp7pdtcuoe/"; 
         sigsRequired = 2;
         // set json variables
         obj1 = "polygon";
@@ -385,10 +385,10 @@ contract DeploymentPolygon is DeploymentLib {
     }
 
     function run() public {
-        uint256 deployerPrivateKey = vm.envUint("POLYGON_PK_0"); // TODO: Johan must create .env for deployment
+        uint256 deployerPrivateKey = vm.envUint("POLYGON_PK_0"); 
         vm.startBroadcast(deployerPrivateKey);
         
-        _deployContracts(deployerPrivateKey);
+        _deployContracts();
 
         vm.stopBroadcast();
 
