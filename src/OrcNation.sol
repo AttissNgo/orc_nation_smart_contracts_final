@@ -54,7 +54,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     mapping(address => bool) public canMintRaffle;
 
     // VRF config
-    bytes32 public keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
+    bytes32 public keyHash = 0xcc294a196eeeb44da2888d17c0625cc88d70d9760a69d58d853ba6581a9ab0cd;
     uint64 public subscriptionId;
     uint16 public requestConfirmations = 3;
     uint32 public callbackGasLimit = 1000000;
@@ -225,6 +225,7 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
     }
 
     function ownerMint(uint256 _numberOfTokens) external onlyAdmin returns (uint256 requestId) {
+        if(_numberOfTokens < 1) revert OrcNation__MustMintAtLeastOneToken();
         if(_numberOfTokens + ownerMintCounter > MAX_OWNER_MINTS) revert OrcNation__WillExceedMaxOwnerMints();
         if(_numberOfTokens > MAX_MINTS_PER_TX) revert OrcNation__MaxMintsPerTransactionExceeded();
         _checkSupply(_numberOfTokens);
@@ -287,7 +288,6 @@ contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
 
     function assignCompMint(address _recipient) external onlyAdmin {
         if(isCompMintRecipient(_recipient)) revert OrcNation__CompMintAlreadyAssignedToAddress();
-        // _assignCompMint(_recipient);
         if(compMintCounter + 1 > MAX_COMP_MINTS) revert OrcNation__MaxCompMintsExceeded();
         ++compMintCounter;
         compMintRecipient[_recipient] = true;
