@@ -5,10 +5,10 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "chainlink/VRFCoordinatorV2Interface.sol";
 import "chainlink/VRFConsumerBaseV2.sol";
-import "./Interfaces/IPricefeed.sol";
-import "./Interfaces/IGovernor.sol";
+import "./interfaces/IPricefeed.sol";
+import "./interfaces/IGovernor.sol";
 
-contract OrcNation is ERC721Enumerable, VRFConsumerBaseV2 {
+contract OrcNation is  VRFConsumerBaseV2, ERC721Enumerable {
     using Strings for uint256;
     
     VRFCoordinatorV2Interface public immutable VRF_COORDINATOR;
