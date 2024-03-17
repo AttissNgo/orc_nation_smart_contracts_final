@@ -30,7 +30,7 @@ contract OrcNationTest is Test, TestSetup {
         assertEq(address(nft.PRICEFEED()), address(pricefeed));
         assertEq(address(nft.PAYMENT_SPLITTER()), address(paymentSplitter));
         assertEq(address(nft.GOVERNOR()), address(governor));
-        assertEq(nft.getRoyaltyReceiver(), company);
+        assertEq(nft.getRoyaltyReceiver(), owner);
         assertEq(nft.getBaseUri(), uri);
         assertEq(nft.PRESALE(), block.timestamp + 100);
         assertEq(nft.SALE_OPEN(), block.timestamp + 200);
@@ -163,7 +163,7 @@ contract OrcNationTest is Test, TestSetup {
     ///////////////////
 
     function test_setRoyaltyReceiver() public {
-        assertEq(nft.getRoyaltyReceiver(), company);
+        assertEq(nft.getRoyaltyReceiver(), owner);
         bytes memory data = abi.encodeWithSignature("setRoyaltyReceiver(address)", alice);
         vm.prank(owner);
         uint256 txIndex = governor.proposeTransaction(address(nft), 0, data);
@@ -181,7 +181,7 @@ contract OrcNationTest is Test, TestSetup {
         util_mint_tokens(1);
         uint256 salePrice = 100 ether;
         (address receiver, uint256 royalty) = nft.royaltyInfo(1, salePrice);
-        assertEq(receiver, company);
+        assertEq(receiver, owner);
         assertEq(royalty, (salePrice * nft.ROYALTY_BASIS_POINTS())/10000);
     }
 
