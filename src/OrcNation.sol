@@ -333,9 +333,13 @@ contract OrcNation is  VRFConsumerBaseV2, ERC721Enumerable {
 
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
         if(ownerOf(_tokenId) == address(0)) revert OrcNation__TokenDoesNotExist();
-        return string.concat(baseUri, tokenIdToUriExtension[_tokenId].toString(), ".json");
+        return string.concat(baseUri, "/", tokenIdToUriExtension[_tokenId].toString(), ".json");
     }
 
+    function contractURI() public view returns (string memory) {
+        return baseUri;
+    }
+ 
     ///////////////////
     ///   ROYALTY   ///
     ///////////////////

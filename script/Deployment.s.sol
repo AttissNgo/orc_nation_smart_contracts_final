@@ -34,7 +34,7 @@ contract DeploymentLib is Script {
     uint64 public subscriptionId;
 
     // uri & governance
-    string public baseUri;
+    string public baseUri = "ipfs://bafybeigoku6kdbrhyritgizffjgbgjjbo5svael2jvvv5r2gkiek3urabe";
     uint256 public sigsRequired;
 
     // JSON variables
@@ -163,7 +163,7 @@ contract DeploymentLocal is DeploymentLib {
         presaleTime = block.timestamp + 100;
         publicSaleTime = block.timestamp + 200;
         // uri & governance
-        baseUri = "ipfs://bafybeihtjotnsuu5zgv2miitn6garjwfavprkivrjswixcm73sbyrpusxy/"; //dummy image - production rarity
+        // baseUri = "ipfs://bafybeihtjotnsuu5zgv2miitn6garjwfavprkivrjswixcm73sbyrpusxy/"; //dummy image - production rarity
         sigsRequired = 2;
         // set json variables
         obj1 = "local";
@@ -272,7 +272,7 @@ contract DeploymentMumbai is DeploymentLib {
         presaleTime = block.timestamp + 60;
         publicSaleTime = block.timestamp + 2 days;
         // uri & governance
-        baseUri = "ipfs://bafybeibrqntuuyzaz4sh7hs244rxlvksvcqrgzm6a5z3hedphdcsfse3gm/"; 
+        // baseUri = "ipfs://bafybeibrqntuuyzaz4sh7hs244rxlvksvcqrgzm6a5z3hedphdcsfse3gm/"; 
         sigsRequired = 2;
         // set json variables
         obj1 = "mumbai";
@@ -314,7 +314,7 @@ contract DeploymentPolygon is DeploymentLib {
 
     address[] public polygonAdmins = [
         0x4E43501dA8d45736d4e48D058cAad66CcC0b05B4, // johan (personal)
-        0xd5C53b14D0F213Fe8E4EdbDB5Aca5b61D63b3D5f, // attiss (trust)
+        0x537Df8463a09D0370DeE4dE077178300340b0030, // attiss (metamask)
         0x4A3F12706E154ed0A73D13dE18704f4e88231fb3 // femi
     ];
 
@@ -374,10 +374,10 @@ contract DeploymentPolygon is DeploymentLib {
         pricefeedAddress = 0xAB594600376Ec9fD91F8e885dADF0CE036862dE0; // polygon mainnet
         vrfAddress = 0xAE975071Be8F8eE67addBC1A82488F1C24858067; // polygon mainnet
         // sale times
-        presaleTime = 1710529200; // 15 March 2024 12:00pm PST
-        publicSaleTime = 1711134000; // 22 March 2024 12:00pm PST
+        presaleTime = 1711738800; // 29 March 2024 12:00pm PST
+        publicSaleTime = 1712343600; // 5 Aprilh 2024 12:00pm PST
         // uri & governance
-        baseUri = "bafybeigxu4n6gnjt6ka4ugfgckyqwzff4oxc27jj5y7ifcomvp7pdtcuoe/"; 
+        // baseUri = "ipfs://bafybeigoku6kdbrhyritgizffjgbgjjbo5svael2jvvv5r2gkiek3urabe"; 
         sigsRequired = 2;
         // set json variables
         obj1 = "polygon";
