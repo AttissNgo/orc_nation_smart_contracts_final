@@ -7,6 +7,7 @@ import "../src/OrcNation.sol";
 import "../src/PaymentSplitter.sol";
 import "../test/PriceFeedMock.sol";
 import "chainlink/VRFCoordinatorV2Mock.sol";
+import "../src/OrcsToken.sol";
 
 contract DeploymentLib is Script {
 
@@ -16,6 +17,7 @@ contract DeploymentLib is Script {
     Governor public governor;
     PaymentSplitter public paymentSplitter;
     OrcNation public nft;
+    OrcsToken public erc20;
     address[] public contractAddresses;
 
     // sale
@@ -75,6 +77,8 @@ contract DeploymentLib is Script {
             subscriptionId,
             baseUri
         );
+
+        erc20 = new OrcsToken(address(governor));
     }
 
     function _setContractNames(
@@ -82,7 +86,8 @@ contract DeploymentLib is Script {
         address _vrf,
         address _governor,
         address _paymentSplitter,
-        address _orcNation
+        address _orcNation,
+        address _orcsToken
     ) 
         internal 
     {
@@ -96,6 +101,8 @@ contract DeploymentLib is Script {
         contractAddresses.push(address(paymentSplitter));
         contractNames[_orcNation] = "OrcNation";
         contractAddresses.push(_orcNation);
+        contractNames[_orcsToken] = "OrcsToken";
+        contractAddresses.push(_orcsToken);
     }
 
     function _serializeAddr(
@@ -126,6 +133,10 @@ contract DeploymentLib is Script {
         string memory paymentSplitterAbi = vm.readFile("./out/PaymentSplitter.sol/PaymentSplitter.json");
         path = "./json_out/PaymentSplitterAbi.json";
         vm.writeFile(path, paymentSplitterAbi);
+
+        string memory orcsTokenAbi = vm.readFile("./out/OrcsToken.sol/OrcsToken.json");
+        path = "./json_out/OrcsTokenAbi.json";
+        vm.writeFile(path, orcsTokenAbi);
     }
 
 }
@@ -186,7 +197,8 @@ contract DeploymentLocal is DeploymentLib {
             address(vrfMock),
             address(governor),
             address(paymentSplitter),
-            address(nft)
+            address(nft),
+            address(erc20)
         );
 
         // write addresses to json
@@ -293,7 +305,8 @@ contract DeploymentMumbai is DeploymentLib {
             vrfAddress,
             address(governor),
             address(paymentSplitter),
-            address(nft)
+            address(nft),
+            address(erc20)
         );
 
         // write addresses to json
@@ -398,7 +411,8 @@ contract DeploymentPolygon is DeploymentLib {
             vrfAddress,
             address(governor),
             address(paymentSplitter),
-            address(nft)
+            address(nft),
+            address(erc20)
         );
 
         // write addresses to json
